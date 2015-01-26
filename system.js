@@ -4,6 +4,7 @@ var Engine = { //the main Engine object
 		Version: 0.1 //engine version number
 	},
 	Settings: {
+	  CanvasSize: [800,600],
 	  Background: {},
 	  SaveInterval: 20, //In seconds
 	  HudFont: "Verdana",
@@ -18,8 +19,8 @@ var Engine = { //the main Engine object
 	  ShowPurchased: true
 	},
 	Player: { //the player object
-		Clicks: 0, //how many clicks
-		Currency: {}
+		Clicks: 0, //total clicks
+		Currency: {} //Stores all currency information
 	},
 	StatusMessage: "", //status message
 	Canvas: { //the canvas object
@@ -27,7 +28,7 @@ var Engine = { //the main Engine object
 		Context: null //this will become a 2d context
 	},
 	Timers: { //this holds all sorts of timers
-		Increment: null, //this is the main coin increment,
+		Increment: null, //this is the main currency increment timer,
 		StatusMessage: null, //this is so we can reset the status message timer
 		SaveGame: null, //Regularly save the game
 	},
@@ -39,11 +40,11 @@ var Engine = { //the main Engine object
   Buttons: {},
 
 	/** functions **/
-	Init: function() { //an inner function "init"
+	Init: function() { //initialize the engine and start game loop
 		Engine.Canvas = document.createElement('canvas'); //create a canvas element
 		Engine.Canvas.id = "display"; //give it an id to reference later
-		Engine.Canvas.width = 800; //the width
-		Engine.Canvas.height = 600; //the height
+		Engine.Canvas.width = Engine.Settings.CanvasSize[0]; //the width
+		Engine.Canvas.height = Engine.Settings.CanvasSize[1]; //the height
 		$('body').append(Engine.Canvas); //finally append the canvas to the page
 
 		if (window.localStorage.getItem("incremental-player")) { //does a save exist
@@ -62,11 +63,19 @@ var Engine = { //the main Engine object
 	  Engine.Settings.HudFont = font;
 	  Engine.Settings.HudColor = color;
 	},
-	CreateCurrency: function(name) {
+	CreateCurrency: function(name, ShwPerClick, ShwPerSec) {
+		if (ShwPerClick == null) {
+			ShwPerClick = true;
+		}
+		if (ShwPerSec == null) {
+			ShwPerSec = true;
+		}
 	  Engine.Player.Currency[name] = {
 	    Count: 0,
 	    PerClick: 1,
-	    PerSec: 0
+	    PerSec: 0,
+	    ShowPerSec: ShwPerSec,
+	    ShowPerClick: ShwPerClick
 	  };
 	},
 	CreateButton: function(name, btn) {
@@ -79,8 +88,11 @@ var Engine = { //the main Engine object
 	  Engine.Upgrades[name] = upgrd;
 	},
 	CreateParticle: function(ix, iy, chr) {
+		if (chr == null) {
+			chr = "+";
+		}
 		var x = Math.floor(Math.random() * 64) + ix; //get a random x
-		var y = Math.floor(Math.random() * 24) + iy; //get a random y
+		var y = Math.floor(Math.random() * 32) + iy; //get a random y
 		Engine.Particles.push({ x:x, y:y, o:10.0, char: chr }); //push the particle into the array
 	},
 	AddImage: function(name, fileName) {
@@ -88,7 +100,11 @@ var Engine = { //the main Engine object
 	  Engine.Images[name].Image.src = fileName;
 	},
 	SetBackground: function(imgName) {
-	  Engine.Settings.Background = imgName;
+		if (Engine.Images[imgName]) {
+	  	Engine.Settings.Background = imgName;
+		} else {
+			console.log("Error setting background to " + imgName + ", image object does not exist.");
+		}
 	},
 	ClickCurrency: function(curn) {
 	  Engine.Player.Clicks++; //add a click
@@ -231,8 +247,8 @@ var Engine = { //the main Engine object
 	},
 
 	/** animation routines **/
-	GameRunning: null, //this is a new variable so we can pause/stop the game
-	Update: function() { //this is where our logic gets updated
+	GameRunning: null,
+	Update: function() { //update game objects
 		for (var p = 0; p < Engine.Particles.length; p++) { //loop through particles
 			Engine.Particles[p].y--; //move up by 1px
 			Engine.Particles[p].o -= 0.1; //reduce opacity by 0.1
@@ -242,7 +258,7 @@ var Engine = { //the main Engine object
 		}
 		Engine.Draw(); //call the canvas draw function
 	},
-	Draw: function() { //this is where we will draw all the information for the game!
+	Draw: function() { //render game
 		Engine.Canvas.Context.clearRect(0,0,Engine.Canvas.width,Engine.Canvas.height); //clear the frame
 
 		/** background **/
@@ -255,10 +271,14 @@ var Engine = { //the main Engine object
 		for (var cur in Engine.Player.Currency) {
 		  Engine.Text(Engine.Player.Currency[cur].Count + " " + cur, 16, curOffset, Engine.Settings.HudFont, Engine.Settings.HudSize, Engine.Settings.HudColor, 1); //currency display
 		  curOffset += Engine.Settings.HudSize;
-		  Engine.Text(Engine.Player.Currency[cur].PerSec + " " + cur + " per second", 16, curOffset, Engine.Settings.HudFont, Engine.Settings.HudSize, Engine.Settings.HudColor, 1); //currency display
-		  curOffset += Engine.Settings.HudSize;
-		  Engine.Text(Engine.Player.Currency[cur].PerClick + " " + cur + " per click", 16, curOffset, Engine.Settings.HudFont, Engine.Settings.HudSize, Engine.Settings.HudColor, 1); //per click display
-		  curOffset += Engine.Settings.HudSize;
+		  if (Engine.Player.Currency[cur].ShowPerSec) {
+		  	Engine.Text(Engine.Player.Currency[cur].PerSec + " " + cur + " per second", 16, curOffset, Engine.Settings.HudFont, Engine.Settings.HudSize, Engine.Settings.HudColor, 1); //currency display
+		  	curOffset += Engine.Settings.HudSize;
+			}
+			if (Engine.Player.Currency[cur].ShowPerClick) {
+		  	Engine.Text(Engine.Player.Currency[cur].PerClick + " " + cur + " per click", 16, curOffset, Engine.Settings.HudFont, Engine.Settings.HudSize, Engine.Settings.HudColor, 1); //per click display
+		  	curOffset += Engine.Settings.HudSize;
+			}
 		}
 
 		//render upgrade buttons

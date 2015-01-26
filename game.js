@@ -15,7 +15,7 @@ Engine.CreateButton("ClickBox",
 		w: 128, h: 128, //size
 		yAlign: "bottom",
 		Callback: function() { //callback function for click handling
-    Engine.CreateParticle(350, 225, "+");
+    Engine.CreateParticle(350, 225);
 			Engine.ClickCurrency("Coins"); //call coin increase
 		}
 	});
@@ -78,9 +78,9 @@ Engine.CreateAchievement("LgClick",
 	  Condition: function() { if (Engine.Player.Clicks >= 20) {return true;} },
 	  Callback: function() { Engine.IncCurrency("Coins", 50); }
 	});
-Engine.CreateAchievement("Benjamins",
+Engine.CreateAchievement("Richer",
   {
-	  Name: "Benjamins",
+	  Name: "Richer",
 	  Desc: "Collect 75 coins",
 	  Condition: function() { if (Engine.Player.Currency.Coins.Count >= 75) {return true;} },
 	  Callback: function() { Engine.IncCurrency("Coins", 50); }
