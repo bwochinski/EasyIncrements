@@ -7,25 +7,28 @@ Engine.SetHud(16,"Verdana","white");
 
 Engine.CreateCurrency("Coins");
 
+Engine.CreatePage("Main");
+Engine.ShowPage("Main");
+
 /** Buttons **/
-Engine.CreateButton("ClickBox",
+Engine.CreateButton("ClickBox", "Main",
   {
 	  image: "ClickArea", opacity: 1, //image set to string of the correct key from the images object (above)
 		x: 320, y: 180, //position
 		w: 128, h: 128, //size
 		yAlign: "bottom",
 		Callback: function() { //callback function for click handling
-    Engine.CreateParticle(350, 225);
+    Engine.CreateParticle("Main", 350, 225);
 			Engine.ClickCurrency("Coins"); //call coin increase
 		}
 	});
-Engine.CreateButton("ClickText",
+Engine.CreateButton("ClickText", "Main",
   {
 	  text: "Click Here", text_font: "Verdana", text_size: 27, text_color: "white", text_opacity: 1,
 		x: 320, y: 260, //position
 		w: 128, h: 128 //size
   });
-Engine.CreateButton("Save",
+Engine.CreateButton("Save", "Main",
 	{
 	  text: "Save", text_font: "Verdana", text_size: 14, text_color: "#111", text_opacity: 1,
 	  color: "silver", opacity: 0.9,
@@ -33,7 +36,7 @@ Engine.CreateButton("Save",
 		w: 100, h: 32,  //size
 		Callback: function () { Engine.Save(); }
 	});
-Engine.CreateButton("Reset",
+Engine.CreateButton("Reset", "Main",
 	{
 	  text: "Reset", text_font: "Verdana", text_size: 14, text_color: "#111", text_opacity: 1,
 	  color: "silver", opacity: 0.9,
@@ -41,7 +44,7 @@ Engine.CreateButton("Reset",
 		w: 100, h: 32,  //size
 		Callback: function () { Engine.Reset(); }
 	});
-Engine.CreateButton("ShowPurchased",
+Engine.CreateButton("ShowPurchased", "Main",
   {
     text: "Hide Purchased", text_font: "Verdana", text_size: 14, text_color: "black", text_opacity:1,
     color: "silver", opacity: 0.8,
@@ -92,14 +95,14 @@ Engine.Settings.ShowPurchased = true;
 Engine.Settings.UpgradeLocation = [650, 32];
 Engine.Settings.UpgradeSize = [140,40];
 
-Engine.CreateUpgrade("ClickUp1",
+Engine.CreateUpgrade("ClickUp1", "Main",
   {
     Text: "+1 per Click",
     Desc: "More coins for each click!",
     Cost: [["Coins",10]],
     Callback: function() {
       Engine.Player.Currency.Coins.PerClick += 1;
-      Engine.CreateUpgrade("ClickUp2",
+      Engine.CreateUpgrade("ClickUp2", "Main",
       {
         Text: "+2 per Click",
         Desc: "Yet more coins for each click.",
@@ -110,21 +113,21 @@ Engine.CreateUpgrade("ClickUp1",
       });
     }
   });
-Engine.CreateUpgrade("IncUp1",
+Engine.CreateUpgrade("IncUp1", "Main",
 {
   Text: "+1 per second",
   Desc: "Coins for nothing!",
   Cost: [["Coins",50]],
   Callback: function() {
      Engine.Player.Currency.Coins.PerSec += 1;
-     Engine.CreateUpgrade("IncUp2",
+     Engine.CreateUpgrade("IncUp2", "Main",
      {
        Text: "+2 per second",
        Desc: "More free coins!",
        Cost: [["Coins",150]],
        Callback: function() {
          Engine.Player.Currency.Coins.PerSec += 2;
-         Engine.CreateUpgrade("EndGame",
+         Engine.CreateUpgrade("EndGame", "Main",
          {
 	       Text: "Woohoo!",
 	       Desc: "You won the game!",

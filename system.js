@@ -20,6 +20,7 @@ var Engine = { //the main Engine object
 	},
 	Player: { //the player object
 		Clicks: 0, //total clicks
+		CurPage: null,
 		Currency: {} //Stores all currency information
 	},
 	StatusMessage: "", //status message
@@ -33,11 +34,9 @@ var Engine = { //the main Engine object
 		SaveGame: null, //Regularly save the game
 	},
 
-	Upgrades: {},
-	Particles: [],
+	Pages: {},
 	Achievements: {},
 	Images: {},
-  Buttons: {},
 
 	/** functions **/
 	Init: function() { //initialize the engine and start game loop
@@ -63,6 +62,17 @@ var Engine = { //the main Engine object
 	  Engine.Settings.HudFont = font;
 	  Engine.Settings.HudColor = color;
 	},
+	CreatePage: function(name) {
+		Engine.Pages[name] = {
+			Particles: [],
+			Buttons: {},
+			Upgrades: {},
+			Display: {}
+		};
+	},
+	ShowPage: function(name) {
+		Engine.Player.CurPage = name;
+	},
 	CreateCurrency: function(name, ShwPerClick, ShwPerSec) {
 		if (ShwPerClick == null) {
 			ShwPerClick = true;
@@ -78,22 +88,22 @@ var Engine = { //the main Engine object
 	    ShowPerClick: ShwPerClick
 	  };
 	},
-	CreateButton: function(name, btn) {
-	  Engine.Buttons[name] = btn;
+	CreateButton: function(name, page, btn) {
+	  Engine.Pages[page].Buttons[name] = btn;
 	},
 	CreateAchievement: function(name, achv) {
 	  Engine.Achievements[name] = achv;
 	},
-	CreateUpgrade: function(name, upgrd) {
-	  Engine.Upgrades[name] = upgrd;
+	CreateUpgrade: function(name, page, upgrd) {
+	  Engine.Pages[page].Upgrades[name] = upgrd;
 	},
-	CreateParticle: function(ix, iy, chr) {
+	CreateParticle: function(page, ix, iy, chr) {
 		if (chr == null) {
 			chr = "+";
 		}
 		var x = Math.floor(Math.random() * 64) + ix; //get a random x
 		var y = Math.floor(Math.random() * 32) + iy; //get a random y
-		Engine.Particles.push({ x:x, y:y, o:10.0, char: chr }); //push the particle into the array
+		Engine.Pages[page].Particles.push({ x:x, y:y, o:10.0, char: chr }); //push the particle into the array
 	},
 	AddImage: function(name, fileName) {
 	  Engine.Images[name] = { File: fileName, Image: new Image() };
@@ -167,9 +177,8 @@ var Engine = { //the main Engine object
 	Save: function() { //save function
 		window.localStorage.setItem("incremental-info", JSON.stringify(Engine.Info)); //set localstorage for engine info
 		window.localStorage.setItem("incremental-player", JSON.stringify(Engine.Player)); //set localstorage for player
-		window.localStorage.setItem("incremental-upgrades", JSON.stringify(Engine.Upgrades)); //set localstorage for upgrades
 		window.localStorage.setItem("incremental-achievements", JSON.stringify(Engine.Achievements)); //set localstorage for achievements
-		window.localStorage.setItem("incremental-buttons", JSON.stringify(Engine.Buttons)); //set localstorage for upgrades
+		window.localStorage.setItem("incremental-pages", JSON.stringify(Engine.Pages)); //set localstorage for upgrades
 		Engine.Status("Saved!"); //show status message
 	},
 	Load: function() { //load function
@@ -178,9 +187,8 @@ var Engine = { //the main Engine object
 			if (version.Version <= Engine.Info.Version) {
 			  //$.extend(true,object1,object2);
 				$.extend(true,Engine.Player, JSON.parse(window.localStorage.getItem("incremental-player"))); //load player
-				$.extend(true,Engine.Upgrades,JSON.parse(window.localStorage.getItem("incremental-upgrades"))); //load upgrades
 				$.extend(true,Engine.Achievements, JSON.parse(window.localStorage.getItem("incremental-achievements"))); //load achievements
-				$.extend(true,Engine.Buttons, JSON.parse(window.localStorage.getItem("incremental-buttons"))); //load achievements
+				$.extend(true,Engine.Pages, JSON.parse(window.localStorage.getItem("incremental-pages"))); //load achievements
 				Engine.Save(); //resave the new versioned data
 				Engine.Info = JSON.parse(window.localStorage.getItem("incremental-info"));
 				Engine.Status("Loaded!"); //show status message
@@ -218,18 +226,18 @@ var Engine = { //the main Engine object
 	},
 	AddClick: function() { //the click function
 		$(Engine.Canvas).on('click', function(m) { //we add a click to the Engine.Canvas object (note the 'm')
-		  for (var en in Engine.Buttons) {
-		    if (Engine.Buttons[en].Callback) {
-          if (m.pageX >= Engine.Buttons[en].x && m.pageX <= (Engine.Buttons[en].x + Engine.Buttons[en].w) && m.pageY >= Engine.Buttons[en].y && m.pageY <= (Engine.Buttons[en].y + Engine.Buttons[en].h)) {
-            Engine.Buttons[en].Callback();
+		  for (var en in Engine.Pages[Engine.Player.CurPage].Buttons) {
+		    if (Engine.Pages[Engine.Player.CurPage].Buttons[en].Callback) {
+          if (m.pageX >= Engine.Pages[Engine.Player.CurPage].Buttons[en].x && m.pageX <= (Engine.Pages[Engine.Player.CurPage].Buttons[en].x + Engine.Pages[Engine.Player.CurPage].Buttons[en].w) && m.pageY >= Engine.Pages[Engine.Player.CurPage].Buttons[en].y && m.pageY <= (Engine.Pages[Engine.Player.CurPage].Buttons[en].y + Engine.Pages[Engine.Player.CurPage].Buttons[en].h)) {
+            Engine.Pages[Engine.Player.CurPage].Buttons[en].Callback();
           }
 		    }
 		  }
 
 		  //upgrade buttons click checking
 		  var upOffset = 0;
-  		for (var u in Engine.Upgrades) {
-  		  var curUp = Engine.Upgrades[u];
+  		for (var u in Engine.Pages[Engine.Player.CurPage].Upgrades) {
+  		  var curUp = Engine.Pages[Engine.Player.CurPage].Upgrades[u];
   		  if (Engine.Settings.ShowPurchased == true || curUp.Get !== true) {
           if (m.pageX >= Engine.Settings.UpgradeLocation[0] && m.pageX <= (Engine.Settings.UpgradeLocation[0] + Engine.Settings.UpgradeSize[0]) && m.pageY >= (Engine.Settings.UpgradeLocation[1] + upOffset) && m.pageY <= (Engine.Settings.UpgradeLocation[1] + Engine.Settings.UpgradeSize[1] + upOffset)) {
             Engine.BuyUpgrade(curUp);
@@ -249,11 +257,11 @@ var Engine = { //the main Engine object
 	/** animation routines **/
 	GameRunning: null,
 	Update: function() { //update game objects
-		for (var p = 0; p < Engine.Particles.length; p++) { //loop through particles
-			Engine.Particles[p].y--; //move up by 1px
-			Engine.Particles[p].o -= 0.1; //reduce opacity by 0.1
-			if (Engine.Particles[p].o <= 0.0) { //if it's invisible
-				Engine.Particles.splice(p,1); //remove the particle from the array
+		for (var p = 0; p < Engine.Pages[Engine.Player.CurPage].Particles.length; p++) { //loop through particles
+			Engine.Pages[Engine.Player.CurPage].Particles[p].y--; //move up by 1px
+			Engine.Pages[Engine.Player.CurPage].Particles[p].o -= 0.1; //reduce opacity by 0.1
+			if (Engine.Pages[Engine.Player.CurPage].Particles[p].o <= 0.0) { //if it's invisible
+				Engine.Pages[Engine.Player.CurPage].Particles.splice(p,1); //remove the particle from the array
 			}
 		}
 		Engine.Draw(); //call the canvas draw function
@@ -283,8 +291,8 @@ var Engine = { //the main Engine object
 
 		//render upgrade buttons
 		var upOffset = 0;
-		for (var u in Engine.Upgrades) {
-		  var curUp = Engine.Upgrades[u];
+		for (var u in Engine.Pages[Engine.Player.CurPage].Upgrades) {
+		  var curUp = Engine.Pages[Engine.Player.CurPage].Upgrades[u];
 		  if (Engine.Settings.ShowPurchased == true || curUp.Get !== true) {
 		    var curColor = "lightgreen";
 		    if (curUp.Get) {
@@ -327,8 +335,8 @@ var Engine = { //the main Engine object
 		}
 
 		//Render Buttons from Object
-    for (var btn in Engine.Buttons) {
-      Engine.Button(Engine.Buttons[btn]);
+    for (var btn in Engine.Pages[Engine.Player.CurPage].Buttons) {
+      Engine.Button(Engine.Pages[Engine.Player.CurPage].Buttons[btn]);
     }
 
     /** Display Status Message **/
@@ -336,9 +344,9 @@ var Engine = { //the main Engine object
 		Engine.Text(Engine.StatusMessage, Engine.Settings.StatusLocation[0], Engine.Settings.StatusLocation[1], Engine.Settings.HudFont, Engine.Settings.HudSize, "orange", 1); //new status message
 
     /** particle rendering **/
-		for (var p = 0; p < Engine.Particles.length; p++) {
-      Engine.Text(Engine.Particles[p].char, Engine.Particles[p].x + 1, Engine.Particles[p].y + 1, Engine.Settings.ParticleFont, Engine.Settings.ParticleSize, "black", Engine.Particles[p].o);
-			Engine.Text(Engine.Particles[p].char, Engine.Particles[p].x, Engine.Particles[p].y, Engine.Settings.ParticleFont, Engine.Settings.ParticleSize, Engine.Settings.ParticleColor, Engine.Particles[p].o);
+		for (var p = 0; p < Engine.Pages[Engine.Player.CurPage].Particles.length; p++) {
+      Engine.Text(Engine.Pages[Engine.Player.CurPage].Particles[p].char, Engine.Pages[Engine.Player.CurPage].Particles[p].x + 1, Engine.Pages[Engine.Player.CurPage].Particles[p].y + 1, Engine.Settings.ParticleFont, Engine.Settings.ParticleSize, "black", Engine.Pages[Engine.Player.CurPage].Particles[p].o);
+			Engine.Text(Engine.Pages[Engine.Player.CurPage].Particles[p].char, Engine.Pages[Engine.Player.CurPage].Particles[p].x, Engine.Pages[Engine.Player.CurPage].Particles[p].y, Engine.Settings.ParticleFont, Engine.Settings.ParticleSize, Engine.Settings.ParticleColor, Engine.Pages[Engine.Player.CurPage].Particles[p].o);
 		}
 
 		Engine.GameLoop(); //re-iterate back to gameloop
