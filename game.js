@@ -53,9 +53,9 @@ Engine.CreateButton("ShowPurchased", "Main",
     Callback: function () {
       Engine.Settings.ShowPurchased = !Engine.Settings.ShowPurchased;
       if (Engine.Settings.ShowPurchased) {
-        Engine.Buttons.ShowPurchased.text = "Hide Purchased";
+        Engine.Pages.Main.Buttons.ShowPurchased.text = "Hide Purchased";
       } else {
-        Engine.Buttons.ShowPurchased.text = "Show Purchased";
+        Engine.Pages.Main.Buttons.ShowPurchased.text = "Show Purchased";
       }
     }
   });
