@@ -71,7 +71,7 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		Canvas.height = Settings.CanvasSize[1]; //the height
 		$('body').append(Canvas); //finally append the canvas to the page
 
-		if (window.localStorage.getItem("incremental-player")) { //does a save exist
+		if (window.localStorage.getItem("eiEngine-info")) { //does a save exist
 			Load(); //load save game
 		}
 
@@ -216,12 +216,15 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		}
 	};
 	
-	var BuyUpgrade = function(up) {
-	  if (MultiDecCurrency(up.Cost)) {
-	    up.Get = true;
-	    up.Callback();
-	    SetStatus("UPGRADE! " + up.Text);
-	  }
+	var BuyUpgrade = function(upgrd) {
+		var up = Pages[Player.CurPage].Upgrades[upgrd];
+		if (up.Get !== true) {
+		  if (MultiDecCurrency(up.Cost)) {
+		    up.Get = true;
+		    up.Callback();
+		    SetStatus("UPGRADE! " + up.Text);
+		  }
+		}
 	};
 	
 	var SetStatus = function(txt) { //show status function
@@ -235,23 +238,25 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	};
 	
 	var Save = function() { //save function
-		window.localStorage.setItem("incremental-info", JSON.stringify(Info)); //set localstorage for engine info
-		window.localStorage.setItem("incremental-player", JSON.stringify(Player)); //set localstorage for player
-		window.localStorage.setItem("incremental-achievements", JSON.stringify(Achievements)); //set localstorage for achievements
-		window.localStorage.setItem("incremental-pages", JSON.stringify(Pages)); //set localstorage for upgrades
+		window.localStorage.setItem("eiEngine-info", JSON.stringify(Info)); //set localstorage for engine info
+		window.localStorage.setItem("eiEngine-settings", JSON.stringify(Settings)); //set localstorage for engine info
+		window.localStorage.setItem("eiEngine-player", JSON.stringify(Player)); //set localstorage for player
+		window.localStorage.setItem("eiEngine-achievements", JSON.stringify(Achievements)); //set localstorage for achievements
+		window.localStorage.setItem("eiEngine-pages", JSON.stringify(Pages)); //set localstorage for upgrades
 		SetStatus("Saved!"); //show status message
 	};
 	
 	var Load = function() { //load function
-		if (window.localStorage.getItem("incremental-info")) {
-			var version = JSON.parse(window.localStorage.getItem("incremental-info"));
+		if (window.localStorage.getItem("eiEngine-info")) {
+			var version = JSON.parse(window.localStorage.getItem("eiEngine-info"));
 			if (version.Version <= Info.Version) {
 			  //$.extend(true,object1,object2);
-				$.extend(true,Player, JSON.parse(window.localStorage.getItem("incremental-player"))); //load player
-				$.extend(true,Achievements, JSON.parse(window.localStorage.getItem("incremental-achievements"))); //load achievements
-				$.extend(true,Pages, JSON.parse(window.localStorage.getItem("incremental-pages"))); //load achievements
+			  $.extend(true,Settings, JSON.parse(window.localStorage.getItem("eiEngine-settings"))); //load player
+				$.extend(true,Player, JSON.parse(window.localStorage.getItem("eiEngine-player"))); //load player
+				$.extend(true,Achievements, JSON.parse(window.localStorage.getItem("eiEngine-achievements"))); //load achievements
+				$.extend(true,Pages, JSON.parse(window.localStorage.getItem("eiEngine-pages"))); //load achievements
 				Save(); //resave the new versioned data
-				Info = JSON.parse(window.localStorage.getItem("incremental-info"));
+				Info = JSON.parse(window.localStorage.getItem("eiEngine-info"));
 				SetStatus("Loaded!"); //show status message
 			} else if (version.Version > Info.Version) {
 				SetStatus("ERROR: Your save file is newer than the game, please reset.");
@@ -264,11 +269,11 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	var Reset = function() { //delete save function
 		var areYouSure = confirm("Are you sure?\r\nYOU WILL LOSE YOUR SAVE!!"); //make sure the user is aware
 		if (areYouSure == true) { //if they click yep
-			window.localStorage.removeItem("incremental-info"); //delete
-			window.localStorage.removeItem("incremental-player"); //delete
-			window.localStorage.removeItem("incremental-upgrades"); //delete
-			window.localStorage.removeItem("incremental-achievements"); //delete
-			window.localStorage.removeItem("incremental-buttons"); //delete
+			window.localStorage.removeItem("eiEngine-info"); //delete
+			window.localStorage.removeItem("eiEngine-settings"); //delete
+			window.localStorage.removeItem("eiEngine-player"); //delete
+			window.localStorage.removeItem("eiEngine-achievements"); //delete
+			window.localStorage.removeItem("eiEngine-pages"); //delete
 			window.location.reload(); //refresh page to restart
 		}
 	};
@@ -326,24 +331,6 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		$(Canvas).on('click', function(evt) { //we add a click to the Canvas object (note the 'evt')
 			
 			return false;
-		}).on('mousedown', function(evt) {
-			Player.MouseDown = true;
-			if (Player.CurButton !== null) {
-				Pages[Player.CurPage].Buttons[Player.CurButton].Clicked = true;
-			} else if (Player.CurUpgrade !== null) {
-				Pages[Player.CurPage].Upgrades[Player.CurUpgrade].Clicked = true;
-			}
-			return false;
-		}).on('mouseup', function(evt) {
-			Player.MouseDown = false;
-			if (Player.CurButton !== null) {
-				Pages[Player.CurPage].Buttons[Player.CurButton].Clicked = false;
-				Pages[Player.CurPage].Buttons[Player.CurButton].Callback();
-			} else if (Player.CurUpgrade !== null) {
-				Pages[Player.CurPage].Upgrades[Player.CurUpgrade].Clicked = false;
-				BuyUpgrade(Pages[Player.CurPage].Upgrades[Player.CurUpgrade]);
-			}
-			return false;
 		}).mousemove(function(evt) {
 			evt = getCanvasPos(Canvas, evt);
 		  for (var n in Pages[Player.CurPage].Buttons) {
@@ -376,6 +363,24 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		//Get canvas size and position on window resize
 		$(window).resize(function() {
 			setCanvasPos();
+		}).on('mousedown', function(evt) { //watch for mouse down events anywhere
+			Player.MouseDown = true;
+			if (Player.CurButton !== null) {
+				Pages[Player.CurPage].Buttons[Player.CurButton].Clicked = true;
+			} else if (Player.CurUpgrade !== null) {
+				Pages[Player.CurPage].Upgrades[Player.CurUpgrade].Clicked = true;
+			}
+			return false;
+		}).on('mouseup', function(evt) { // watch for mouse up events anywhere
+			Player.MouseDown = false;
+			if (Player.CurButton !== null) {
+				Pages[Player.CurPage].Buttons[Player.CurButton].Clicked = false;
+				Pages[Player.CurPage].Buttons[Player.CurButton].Callback();
+			} else if (Player.CurUpgrade !== null) {
+				Pages[Player.CurPage].Upgrades[Player.CurUpgrade].Clicked = false;
+				BuyUpgrade(Player.CurUpgrade);
+			}
+			return false;
 		});
 	};
 
@@ -432,11 +437,12 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		      opacity: 1,
 		      text: curUp.Text,
 		      text_font: "Verdana",
-		      text_size: 12,
-		      text_color: "black",
+		      text_size: curUp.text_size,
+		      text_color: curUp.text_color,
 		      text_opacity: 1,
 		      yAlign: "top",
-		      Clicked: curUp.Clicked
+		      Clicked: curUp.Clicked,
+		      image: curUp.Image
 		    });
 		    var strCost = "";
 		    for (var i = 0; i < curUp.Cost.length; i++) {
@@ -448,8 +454,8 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		        Settings.UpgradeLocation[0],
 		        Settings.UpgradeLocation[1] + upOffset,
 		        "Verdana",
-		        10,
-		        "black",
+		        curUp.text_size - 2,
+		        curUp.text_color,
 		        1,
 		        Settings.UpgradeSize[0],
 		        Settings.UpgradeSize[1],
@@ -487,25 +493,25 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 
 	/** drawing routines **/
 	var RenderButton = function (btn) {
-		var tmpbtn = {};
-		$.extend(true, tmpbtn, btn);
-		if (tmpbtn.Clicked == true) {
-			tmpbtn.x += 2;
-			tmpbtn.y += 2;
-			tmpbtn.w -= 4;
-			tmpbtn.h -= 4;
+		var tbtn = {};
+		$.extend(true, tbtn, btn);
+		if (tbtn.Clicked == true) {
+			tbtn.x += 2;
+			tbtn.y += 2;
+			tbtn.w -= 4;
+			tbtn.h -= 4;
 		}
-    if (tmpbtn.image) {
-      RenderImage(Images[tmpbtn.image].Image, tmpbtn.x, tmpbtn.y, tmpbtn.w, tmpbtn.h, tmpbtn.opacity);
-    } else if(tmpbtn.color) {
-      RenderRect(tmpbtn.x, tmpbtn.y, tmpbtn.w, tmpbtn.h, tmpbtn.color, tmpbtn.opacity);
+    if (tbtn.image) {
+      RenderImage(Images[tbtn.image].Image, tbtn.x, tbtn.y, tbtn.w, tbtn.h, tbtn.opacity);
+    } else if(tbtn.color) {
+      RenderRect(tbtn.x, tbtn.y, tbtn.w, tbtn.h, tbtn.color, tbtn.opacity);
     }
-    if (tmpbtn.text) {
+    if (tbtn.text) {
       var xAlign = "center";
       var yAlign = "center";
-      if (tmpbtn.xAlign) { xAlign = tmpbtn.xAlign; }
-      if (tmpbtn.yAlign) { yAlign = tmpbtn.yAlign; }
-      RenderText(tmpbtn.text, tmpbtn.x, tmpbtn.y, tmpbtn.text_font, tmpbtn.text_size, tmpbtn.text_color, tmpbtn.text_opacity, tmpbtn.w, tmpbtn.h, xAlign, yAlign);
+      if (tbtn.xAlign) { xAlign = tbtn.xAlign; }
+      if (tbtn.yAlign) { yAlign = tbtn.yAlign; }
+      RenderText(tbtn.text, tbtn.x, tbtn.y, tbtn.text_font, tbtn.text_size, tbtn.text_color, tbtn.text_opacity, tbtn.w, tbtn.h, xAlign, yAlign);
     }
 	};
 	

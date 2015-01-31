@@ -3,6 +3,7 @@ var eiEngine = newEngine(800,600);
 /** Images **/
 eiEngine.AddImage("Background1", "img/jungle.jpg"); //background image
 eiEngine.AddImage("ClickArea", "img/coin.png"); //click area target
+eiEngine.AddImage("ButtonBG", "img/menu-button.png"); // Button backgroun
 
 eiEngine.SetBackground("Background1");
 eiEngine.SetHud(16,"Verdana","white");
@@ -20,7 +21,7 @@ eiEngine.CreateButton("ClickBox", "Main",
 		w: 128, h: 128, //size
 		yAlign: "bottom",
 		Callback: function() { //callback function for click handling
-      eiEngine.CreateParticle("Main", 350, 225);
+      eiEngine.CreateParticle("Main", 350, 225, "+" + eiEngine.GetCurrency("Coins", "PerClick"));
 			eiEngine.ClickCurrency("Coins"); //call coin increase
 		}
 	});
@@ -32,26 +33,27 @@ eiEngine.CreateButton("ClickText", "Main",
   });
 eiEngine.CreateButton("Save", "Main",
 	{
-	  text: "Save", text_font: "Verdana", text_size: 14, text_color: "#111", text_opacity: 1,
-	  color: "silver", opacity: 0.9,
-		x: 16, y: 510, //position
-		w: 100, h: 32,  //size
+	  image: "ButtonBG", opacity: 1,
+	  text: "Save", text_font: "Verdana", text_size: 14, text_color: "white", text_opacity: 1,
+		x: 16, y: 502, //position
+		w: 140, h: 40,  //size
 		Callback: function () { eiEngine.Save(); }
 	});
 eiEngine.CreateButton("Reset", "Main",
 	{
-	  text: "Reset", text_font: "Verdana", text_size: 14, text_color: "#111", text_opacity: 1,
-	  color: "silver", opacity: 0.9,
+	  image: "ButtonBG", opacity: 1,
+	  text: "Reset", text_font: "Verdana", text_size: 14, text_color: "white", text_opacity: 1,
+	  color: "silver",
 		x: 16, y: 550, //position
-		w: 100, h: 32,  //size
+		w: 140, h: 40,  //size
 		Callback: function () { eiEngine.Reset(); }
 	});
 eiEngine.CreateButton("ShowPurchased", "Main",
   {
-    text: "Hide Purchased", text_font: "Verdana", text_size: 14, text_color: "black", text_opacity:1,
-    color: "silver", opacity: 0.8,
+    image: "ButtonBG", opacity: 1,
+    text: "Hide Purchased", text_font: "Verdana", text_size: 14, text_color: "white", text_opacity:1,
     x: 650, y:550,
-    w: 140, h:32,
+    w: 140, h:40,
     Callback: function () {
       eiEngine.SetSetting("ShowPurchased", !eiEngine.GetSetting("ShowPurchased"));
       if (eiEngine.GetSetting("ShowPurchased")) {
@@ -90,21 +92,36 @@ eiEngine.CreateAchievement("Richer",
 	  Condition: function() { if (eiEngine.GetCurrency("Coins", "Count") >= 75) {return true;} },
 	  Callback: function() { eiEngine.IncCurrency("Coins", 50); }
 	});
+eiEngine.CreateAchievement("Recursive",
+  {
+    Name: "Recursive",
+    Desc: "Collect 300 coins",
+    Condition: function() { if (eiEngine.GetCurrency("Coins", "Count") >= 300) {return true;} },
+    Callback: function() { eiEngine.AlterCurrency("Coins", "PerSec", +2); }
+  });
 
 
 	/** upgrades **/
 eiEngine.SetSetting("ShowPurchased", true, "UpgradeLocation", [650, 32], "UpgradeSize", [140,40]);
 
+//Not actually a button, just header text
+eiEngine.CreateButton("UpgdText", "Main",
+  {
+	  text: "Upgrades:", text_font: "Verdana", text_size: 20, text_color: "white", text_opacity: 1,
+		x: 650, y: 8, //position
+		w: 140, h: 24 //size
+  });
+
 eiEngine.CreateUpgrade("ClickUp1", "Main",
   {
-    Text: "+1 per Click",
+    Text: "+1 per Click", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
     Desc: "More coins for each click!",
     Cost: [["Coins",10]],
     Callback: function() {
       eiEngine.AlterCurrency("Coins", "PerClick", +1);
       eiEngine.CreateUpgrade("ClickUp2", "Main",
       {
-        Text: "+2 per Click",
+        Text: "+2 per Click", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
         Desc: "Yet more coins for each click.",
         Cost: [["Coins",75]],
         Callback: function() {
@@ -115,21 +132,21 @@ eiEngine.CreateUpgrade("ClickUp1", "Main",
   });
 eiEngine.CreateUpgrade("IncUp1", "Main",
 {
-  Text: "+1 per second",
+  Text: "+1 per second", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
   Desc: "Coins for nothing!",
   Cost: [["Coins",50]],
   Callback: function() {
      eiEngine.AlterCurrency("Coins", "PerSec", +1);
      eiEngine.CreateUpgrade("IncUp2", "Main",
      {
-       Text: "+2 per second",
+       Text: "+2 per second", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
        Desc: "More free coins!",
        Cost: [["Coins",150]],
        Callback: function() {
          eiEngine.AlterCurrency("Coins", "PerSec", +2);
          eiEngine.CreateUpgrade("EndGame", "Main",
          {
-	       Text: "Woohoo!",
+	       Text: "Woohoo!", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
 	       Desc: "You won the game!",
 	       Cost: [["Coins",450]],
 	       Callback: function() {
