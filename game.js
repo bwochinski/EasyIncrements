@@ -2,11 +2,11 @@ var eiEngine = newEngine(800,600);
 
 /** Images **/
 eiEngine.AddImage("Background1", "img/jungle.jpg"); //background image
-eiEngine.AddImage("ClickArea", "img/coin.png"); //click area target
+eiEngine.AddImage("Coin", "img/coin.png"); //click area target
 eiEngine.AddImage("ButtonBG", "img/menu-button.png"); // Button backgroun
 
-eiEngine.SetBackground("Background1");
-eiEngine.SetHud(16,"Verdana","white");
+//eiEngine.SetBackground("Background1");
+eiEngine.SetHud(16,"Verdana","black");
 
 eiEngine.CreateCurrency("Coins");
 
@@ -16,7 +16,7 @@ eiEngine.ShowPage("Main");
 /** Buttons **/
 eiEngine.CreateButton("ClickBox", "Main",
   {
-	  image: "ClickArea", opacity: 1, //image set to string of the correct key from the images object (above)
+	  image: "Coin", opacity: 1, //image set to string of the correct key from the images object (above)
 		x: 320, y: 180, //position
 		w: 128, h: 128, //size
 		yAlign: "bottom",
@@ -27,7 +27,7 @@ eiEngine.CreateButton("ClickBox", "Main",
 	});
 eiEngine.CreateButton("ClickText", "Main",
   {
-	  text: "Click Here", text_font: "Verdana", text_size: 27, text_color: "white", text_opacity: 1,
+	  text: "Click Here", text_font: "Verdana", text_size: 27, text_color: "black", text_opacity: 1,
 		x: 320, y: 260, //position
 		w: 128, h: 128 //size
   });
@@ -107,7 +107,7 @@ eiEngine.SetSetting("ShowPurchased", true, "UpgradeLocation", [650, 32], "Upgrad
 //Not actually a button, just header text
 eiEngine.CreateButton("UpgdText", "Main",
   {
-	  text: "Upgrades:", text_font: "Verdana", text_size: 20, text_color: "white", text_opacity: 1,
+	  text: "Upgrades:", text_font: "Verdana", text_size: 20, text_color: "black", text_opacity: 1,
 		x: 650, y: 8, //position
 		w: 140, h: 24 //size
   });

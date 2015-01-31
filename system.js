@@ -70,6 +70,7 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		Canvas.width = Settings.CanvasSize[0]; //the width
 		Canvas.height = Settings.CanvasSize[1]; //the height
 		$('body').append(Canvas); //finally append the canvas to the page
+		$(Canvas).css("border", "1px solid gray");
 
 		if (window.localStorage.getItem("eiEngine-info")) { //does a save exist
 			Load(); //load save game
@@ -90,17 +91,34 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	  Settings.HudColor = color;
 	};
 	
-	var CreatePage = function(name) {
+	var CreateFrame = function(name, page, x, y, w, h, tabs) {
+		Pages[page].Frames[name] = {
+			x:x,
+			y:y,
+			w:w,
+			h:h,
+			Pages: new Array(),
+			CurPage: null,
+			ShowTabs: (tabs === true ? true : false)
+		};
+	};
+	
+	var CreatePage = function(name, frame) {
 		Pages[name] = {
+			Parent: (frame == null ? null : frame),
 			Particles: new Array(),
 			Buttons: {},
 			Upgrades: {},
-			Display: {}
+			Frames: new Array()
 		};
 	};
 	
 	var ShowPage = function(name) {
-		Player.CurPage = name;
+		if (Pages[name].Parent) {
+			Pages[name].Frames[Pages[name].Parent].CurPage = name;
+		} else {
+			Player.CurPage = name;
+		}
 	};
 	
 	var CreateCurrency = function(name, ShwPerClick, ShwPerSec) {
@@ -504,7 +522,7 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
     if (tbtn.image) {
       RenderImage(Images[tbtn.image].Image, tbtn.x, tbtn.y, tbtn.w, tbtn.h, tbtn.opacity);
     } else if(tbtn.color) {
-      RenderRect(tbtn.x, tbtn.y, tbtn.w, tbtn.h, tbtn.color, tbtn.opacity);
+      RenderRect(tbtn.x, tbtn.y, tbtn.w, tbtn.h, tbtn.color, tbtn.opacity, true);
     }
     if (tbtn.text) {
       var xAlign = "center";
@@ -523,14 +541,22 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		Canvas.Context.globalAlpha = 1.0; //reset opacity
 	};
 	
-	var RenderRect = function(x,y,w,h,col,opac) { //x position, y position, width, height and colour
+	var RenderRect = function(x,y,w,h,col,opac, filled) { //x position, y position, width, height and colour
 		if (col) { //if you have included a colour
-			Canvas.Context.fillStyle = col; //add the colour!
+			if (filled === true) {
+				Canvas.Context.fillStyle = col; //add the colour!
+			} else {
+				Canvas.Context.strokeStyle = col;
+			}
 		}
 		if (opac > 0) { //if opacity exists
 			Canvas.Context.globalAlpha = opac; //reset opacity
 		}
-		Canvas.Context.fillRect(x,y,w,h); //draw the rectangle
+		if (filled === true) {
+			Canvas.Context.fillRect(x,y,w,h); //draw a filled rectangle
+		} else {
+			Canvas.Context.rect(x,y,w,h); //draw an empty rectangle
+		}
 		Canvas.Context.globalAlpha = 1.0;
 	};
 	
@@ -568,6 +594,7 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		GetPlayer: GetPlayer,
 		Init: Init,
 		SetHud: SetHud,
+		CreateFrame: CreateFrame,
 		CreatePage: CreatePage,
 		ShowPage: ShowPage,
 		CreateCurrency: CreateCurrency,
