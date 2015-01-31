@@ -36,6 +36,9 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	var Player = { //the player object
 		Clicks: 0, //total clicks
 		CurPage: null,
+		CurButton: null,
+		CurUpgrade: null,
+		MouseDown: false,
 		Currency: {} //Stores all currency information
 	};
 	
@@ -76,6 +79,7 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		StartAutoSave(); //start auto-saving progress
 		StartIncrement(); //start the auto coins
 		Canvas.Context = Canvas.getContext('2d'); //set the canvas to render in 2d.
+		setCanvasPos();
 		GameLoop(); //start rendering the game!
 
 	};
@@ -286,43 +290,92 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	
 	//Get position relative to the Canvas, not the page
 	var getCanvasPos = function(canvas, evt) {
-	  var rect = canvas.getBoundingClientRect();
+	  //var rect = canvas.getBoundingClientRect();
 	  return {
-	    X: Math.round((evt.clientX-rect.left)/(rect.right-rect.left)*canvas.width),
-			Y: Math.round((evt.clientY-rect.top)/(rect.bottom-rect.top)*canvas.height)
+	    X: Math.round((evt.clientX-Canvas.Rect.left)/(Canvas.Rect.right-Canvas.Rect.left)*Canvas.width),
+			Y: Math.round((evt.clientY-Canvas.Rect.top)/(Canvas.Rect.bottom-Canvas.Rect.top)*Canvas.height)
 	  };
 	};
 	
+	//Re-get canvas size and position, called on resize
+	var setCanvasPos = function() {
+		Canvas.Rect = Canvas.getBoundingClientRect();
+	};
+	
+	var setCurButton = function(name, upgrade) {
+		if (upgrade !== true) {
+			if (Player.CurButton !== null && Player.CurButton != name) {
+				Pages[Player.CurPage].Buttons[Player.CurButton].Clicked = false;
+			}
+			Player.CurButton = name;
+			if (name !== null && Player.MouseDown == true) {
+				Pages[Player.CurPage].Buttons[name].Clicked = true;
+			}
+		} else {
+			if (Player.CurUpgrade !== null && Player.CurUpgrade != name) {
+				Pages[Player.CurPage].Upgrades[Player.CurUpgrade].Clicked = false;
+			}
+			Player.CurUpgrade = name;
+			if (name !== null && Player.MouseDown == true) {
+				Pages[Player.CurPage].Upgrades[name].Clicked = true;
+			}
+		}
+	};
+	
 	var AddClick = function() { //the click function
-		$(Canvas).on('click', function(m) { //we add a click to the Canvas object (note the 'm')
-			m = getCanvasPos(Canvas, m);
-		  for (var en in Pages[Player.CurPage].Buttons) {
-		    if (Pages[Player.CurPage].Buttons[en].Callback) {
-          if (m.X >= Pages[Player.CurPage].Buttons[en].x && m.X <= (Pages[Player.CurPage].Buttons[en].x + Pages[Player.CurPage].Buttons[en].w) && m.Y >= Pages[Player.CurPage].Buttons[en].y && m.Y <= (Pages[Player.CurPage].Buttons[en].y + Pages[Player.CurPage].Buttons[en].h)) {
-            Pages[Player.CurPage].Buttons[en].Callback();
+		$(Canvas).on('click', function(evt) { //we add a click to the Canvas object (note the 'evt')
+			
+			return false;
+		}).on('mousedown', function(evt) {
+			Player.MouseDown = true;
+			if (Player.CurButton !== null) {
+				Pages[Player.CurPage].Buttons[Player.CurButton].Clicked = true;
+			} else if (Player.CurUpgrade !== null) {
+				Pages[Player.CurPage].Upgrades[Player.CurUpgrade].Clicked = true;
+			}
+			return false;
+		}).on('mouseup', function(evt) {
+			Player.MouseDown = false;
+			if (Player.CurButton !== null) {
+				Pages[Player.CurPage].Buttons[Player.CurButton].Clicked = false;
+				Pages[Player.CurPage].Buttons[Player.CurButton].Callback();
+			} else if (Player.CurUpgrade !== null) {
+				Pages[Player.CurPage].Upgrades[Player.CurUpgrade].Clicked = false;
+				BuyUpgrade(Pages[Player.CurPage].Upgrades[Player.CurUpgrade]);
+			}
+			return false;
+		}).mousemove(function(evt) {
+			evt = getCanvasPos(Canvas, evt);
+		  for (var n in Pages[Player.CurPage].Buttons) {
+		    if (Pages[Player.CurPage].Buttons[n].Callback) {
+          if (evt.X >= Pages[Player.CurPage].Buttons[n].x && evt.X <= (Pages[Player.CurPage].Buttons[n].x + Pages[Player.CurPage].Buttons[n].w) && evt.Y >= Pages[Player.CurPage].Buttons[n].y && evt.Y <= (Pages[Player.CurPage].Buttons[n].y + Pages[Player.CurPage].Buttons[n].h)) {
+            setCurButton(n);
             return false;
           }
 		    }
 		  }
+		  setCurButton(null);
 
 		  //upgrade buttons click checking
 		  var upOffset = 0;
   		for (var u in Pages[Player.CurPage].Upgrades) {
   		  var curUp = Pages[Player.CurPage].Upgrades[u];
   		  if (Settings.ShowPurchased == true || curUp.Get !== true) {
-          if (m.X >= Settings.UpgradeLocation[0] && m.X <= (Settings.UpgradeLocation[0] + Settings.UpgradeSize[0]) && m.Y >= (Settings.UpgradeLocation[1] + upOffset) && m.Y <= (Settings.UpgradeLocation[1] + Settings.UpgradeSize[1] + upOffset)) {
-            BuyUpgrade(curUp);
+          if (evt.X >= Settings.UpgradeLocation[0] && evt.X <= (Settings.UpgradeLocation[0] + Settings.UpgradeSize[0]) && evt.Y >= (Settings.UpgradeLocation[1] + upOffset) && evt.Y <= (Settings.UpgradeLocation[1] + Settings.UpgradeSize[1] + upOffset)) {
+            setCurButton(u, true);
             return false;
           }
   		    upOffset += Settings.UpgradeSize[1] + 8;
   		  }
   		}
+  		setCurButton(null, true);
 
 			return false;
-		}).on('mousedown', function(m) {
-
-		}).on('mouseup', function(m) {
-
+		});
+		
+		//Get canvas size and position on window resize
+		$(window).resize(function() {
+			setCanvasPos();
 		});
 	};
 
@@ -382,7 +435,8 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		      text_size: 12,
 		      text_color: "black",
 		      text_opacity: 1,
-		      yAlign: "top"
+		      yAlign: "top",
+		      Clicked: curUp.Clicked
 		    });
 		    var strCost = "";
 		    for (var i = 0; i < curUp.Cost.length; i++) {
@@ -433,17 +487,25 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 
 	/** drawing routines **/
 	var RenderButton = function (btn) {
-    if (btn.image) {
-      RenderImage(Images[btn.image].Image, btn.x, btn.y, btn.w, btn.h, btn.opacity);
-    } else if(btn.color) {
-      RenderRect(btn.x, btn.y, btn.w, btn.h, btn.color, btn.opacity);
+		var tmpbtn = {};
+		$.extend(true, tmpbtn, btn);
+		if (tmpbtn.Clicked == true) {
+			tmpbtn.x += 2;
+			tmpbtn.y += 2;
+			tmpbtn.w -= 4;
+			tmpbtn.h -= 4;
+		}
+    if (tmpbtn.image) {
+      RenderImage(Images[tmpbtn.image].Image, tmpbtn.x, tmpbtn.y, tmpbtn.w, tmpbtn.h, tmpbtn.opacity);
+    } else if(tmpbtn.color) {
+      RenderRect(tmpbtn.x, tmpbtn.y, tmpbtn.w, tmpbtn.h, tmpbtn.color, tmpbtn.opacity);
     }
-    if (btn.text) {
+    if (tmpbtn.text) {
       var xAlign = "center";
       var yAlign = "center";
-      if (btn.xAlign) { xAlign = btn.xAlign; }
-      if (btn.yAlign) { yAlign = btn.yAlign; }
-      RenderText(btn.text, btn.x, btn.y, btn.text_font, btn.text_size, btn.text_color, btn.text_opacity, btn.w, btn.h, xAlign, yAlign);
+      if (tmpbtn.xAlign) { xAlign = tmpbtn.xAlign; }
+      if (tmpbtn.yAlign) { yAlign = tmpbtn.yAlign; }
+      RenderText(tmpbtn.text, tmpbtn.x, tmpbtn.y, tmpbtn.text_font, tmpbtn.text_size, tmpbtn.text_color, tmpbtn.text_opacity, tmpbtn.w, tmpbtn.h, xAlign, yAlign);
     }
 	};
 	

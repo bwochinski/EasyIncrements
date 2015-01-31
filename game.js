@@ -20,7 +20,6 @@ eiEngine.CreateButton("ClickBox", "Main",
 		w: 128, h: 128, //size
 		yAlign: "bottom",
 		Callback: function() { //callback function for click handling
-		  console.log("click2\n");
       eiEngine.CreateParticle("Main", 350, 225);
 			eiEngine.ClickCurrency("Coins"); //call coin increase
 		}
