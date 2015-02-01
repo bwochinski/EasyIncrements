@@ -13,6 +13,11 @@ eiEngine.CreateCurrency("Coins");
 eiEngine.CreatePage("Main");
 eiEngine.ShowPage("Main");
 
+eiEngine.CreateFrame("Sidebar", "Main", 630, 10, 160, 300);
+
+eiEngine.CreatePage("Upgrades", "Sidebar");
+eiEngine.ShowPage("Upgrades");
+
 /** Buttons **/
 eiEngine.CreateButton("ClickBox", "Main",
   {
@@ -102,24 +107,25 @@ eiEngine.CreateAchievement("Recursive",
 
 
 	/** upgrades **/
-eiEngine.SetSetting("ShowPurchased", true, "UpgradeLocation", [650, 32], "UpgradeSize", [140,40]);
+eiEngine.SetSetting("ShowPurchased", true, "UpgradeLocation", [10, 32], "UpgradeSize", [140,40]);
 
 //Not actually a button, just header text
-eiEngine.CreateButton("UpgdText", "Main",
+//Buttons without a "callback" aren't compared against 
+eiEngine.CreateButton("UpgdText", "Upgrades",
   {
 	  text: "Upgrades:", text_font: "Verdana", text_size: 20, text_color: "black", text_opacity: 1,
-		x: 650, y: 8, //position
+		x: 10, y: 8, //position
 		w: 140, h: 24 //size
   });
 
-eiEngine.CreateUpgrade("ClickUp1", "Main",
+eiEngine.CreateUpgrade("ClickUp1", "Upgrades",
   {
     Text: "+1 per Click", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
     Desc: "More coins for each click!",
     Cost: [["Coins",10]],
     Callback: function() {
       eiEngine.AlterCurrency("Coins", "PerClick", +1);
-      eiEngine.CreateUpgrade("ClickUp2", "Main",
+      eiEngine.CreateUpgrade("ClickUp2", "Upgrades",
       {
         Text: "+2 per Click", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
         Desc: "Yet more coins for each click.",
@@ -130,21 +136,21 @@ eiEngine.CreateUpgrade("ClickUp1", "Main",
       });
     }
   });
-eiEngine.CreateUpgrade("IncUp1", "Main",
+eiEngine.CreateUpgrade("IncUp1", "Upgrades",
 {
   Text: "+1 per second", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
   Desc: "Coins for nothing!",
   Cost: [["Coins",50]],
   Callback: function() {
      eiEngine.AlterCurrency("Coins", "PerSec", +1);
-     eiEngine.CreateUpgrade("IncUp2", "Main",
+     eiEngine.CreateUpgrade("IncUp2", "Upgrades",
      {
        Text: "+2 per second", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
        Desc: "More free coins!",
        Cost: [["Coins",150]],
        Callback: function() {
          eiEngine.AlterCurrency("Coins", "PerSec", +2);
-         eiEngine.CreateUpgrade("EndGame", "Main",
+         eiEngine.CreateUpgrade("EndGame", "Upgrades",
          {
 	       Text: "Woohoo!", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
 	       Desc: "You won the game!",
