@@ -1,137 +1,172 @@
-/** Images **/
-Engine.AddImage("Background1", "img/jungle.jpg"); //background image
-Engine.AddImage("ClickArea", "img/coin.png"); //click area target
+//Create a new engine object, specifying the canvas size
+var eiEngine = newEngine(800,600);
 
-Engine.SetBackground("Background1");
-Engine.SetHud(16,"Verdana","white");
+//** Images ** Add any images needed for the game
+eiEngine.AddImage("Background1", "img/jungle.jpg"); //background image
+eiEngine.AddImage("Coin", "img/coin.png"); //click area target
+eiEngine.AddImage("ButtonBG", "img/menu-button.png"); // Button backgroun
 
-Engine.CreateCurrency("Coins");
+//Set background image for the game -------------------------------------------- (to be deprecated to page backgrounds !!!!)
+//eiEngine.SetBackground("Background1");
+
+//Set HUD font ----------------------------------------------------------------- (to be deprecated to displays !!!!)
+eiEngine.SetHud(16,"Verdana","black");
+
+//Create a game currency, these can be used to track anything
+//These could also track producers, especially in cases where one producer creates another producer
+eiEngine.CreateCurrency("Coins");
+
+//Create a page to display objects on
+//If no frame is specified it is assumed to use the whole canvas as the frame
+eiEngine.CreatePage("Main");
+//Set the page to display
+eiEngine.ShowPage("Main");
 
 /** Buttons **/
-Engine.CreateButton("ClickBox",
+eiEngine.CreateButton("ClickBox", "Main", //Button name (unique) and page to attach it to
   {
-	  image: "ClickArea", opacity: 1, //image set to string of the correct key from the images object (above)
-		x: 320, y: 180, //position
+	  image: "Coin", opacity: 1, //image set to string of the correct key from the images object (above)
+		x: 320, y: 180, //position (relative to it's parent frame!)
 		w: 128, h: 128, //size
-		yAlign: "bottom",
+		xAlign: "center", yAlign: "bottom", //Alignment of text within the button
 		Callback: function() { //callback function for click handling
-    Engine.CreateParticle(350, 225);
-			Engine.ClickCurrency("Coins"); //call coin increase
+		  //Creates a "particle" effect near the specified coordinates
+      eiEngine.CreateParticle("Main", 350, 225, "+" + eiEngine.GetCurrency("Coins", "PerClick"));
+      //call coin increase - increases given currency by it's "PerClick" value.
+			eiEngine.ClickCurrency("Coins"); 
 		}
 	});
-Engine.CreateButton("ClickText",
+eiEngine.CreateButton("ClickText", "Main",
   {
-	  text: "Click Here", text_font: "Verdana", text_size: 27, text_color: "white", text_opacity: 1,
-		x: 320, y: 260, //position
-		w: 128, h: 128 //size
+	  text: "Click Here", text_font: "Verdana", text_size: 27, text_color: "black", text_opacity: 1,
+		x: 320, y: 260, 
+		w: 128, h: 128 
   });
-Engine.CreateButton("Save",
-	{
-	  text: "Save", text_font: "Verdana", text_size: 14, text_color: "#111", text_opacity: 1,
-	  color: "silver", opacity: 0.9,
-		x: 16, y: 510, //position
-		w: 100, h: 32,  //size
-		Callback: function () { Engine.Save(); }
-	});
-Engine.CreateButton("Reset",
-	{
-	  text: "Reset", text_font: "Verdana", text_size: 14, text_color: "#111", text_opacity: 1,
-	  color: "silver", opacity: 0.9,
-		x: 16, y: 550, //position
-		w: 100, h: 32,  //size
-		Callback: function () { Engine.Reset(); }
-	});
-Engine.CreateButton("ShowPurchased",
+eiEngine.CreateButton("ShowPurchased", "Main",
   {
-    text: "Hide Purchased", text_font: "Verdana", text_size: 14, text_color: "black", text_opacity:1,
-    color: "silver", opacity: 0.8,
+    image: "ButtonBG", opacity: 1,
+    text: "Hide Purchased", text_font: "Verdana", text_size: 14, text_color: "white", text_opacity:1,
     x: 650, y:550,
-    w: 140, h:32,
+    w: 140, h:40,
+      //Example callback for a toggle button that changes it's own text
     Callback: function () {
-      Engine.Settings.ShowPurchased = !Engine.Settings.ShowPurchased;
-      if (Engine.Settings.ShowPurchased) {
-        Engine.Buttons.ShowPurchased.text = "Hide Purchased";
+      eiEngine.SetSetting("ShowPurchased", !eiEngine.GetSetting("ShowPurchased"));
+      if (eiEngine.GetSetting("ShowPurchased")) {
+        eiEngine.UpdateButton("ShowPurchased", "Main", {text: "Hide Purchased"});
       } else {
-        Engine.Buttons.ShowPurchased.text = "Show Purchased";
+        eiEngine.UpdateButton("ShowPurchased", "Main", {text: "Show Purchased"});
       }
     }
   });
 
 
 	/** achievements **/
-Engine.CreateAchievement("SmClick",
+eiEngine.CreateAchievement("SmClick", //System name for the achievement, unique
   {
-	  Name: "Small Clicker",
-	  Desc: "Click 5 times",
-	  Condition: function() { if (Engine.Player.Clicks >= 5) {return true;} }
+	  Name: "Small Clicker", //Display name
+	  Desc: "Click 5 times", //Optional description text
+	  //Condition that must be met for the achievement to be awarded, function must return true/false
+	  Condition: function() { if (eiEngine.GetPlayer("Clicks") >= 5) {return true;} }
 	});
-Engine.CreateAchievement("MedClick",
+eiEngine.CreateAchievement("MedClick",
   {
 	  Name: "Medium Clicker",
 	  Desc: "Click 10 times",
-	  Condition: function() { if (Engine.Player.Clicks >= 10) {return true;} }
+	  Condition: function() { if (eiEngine.GetPlayer("Clicks") >= 10) {return true;} }
 	});
-Engine.CreateAchievement("LgClick",
+eiEngine.CreateAchievement("LgClick",
   {
 	  Name: "Large Clicker",
 	  Desc: "Click 20 times",
-	  Condition: function() { if (Engine.Player.Clicks >= 20) {return true;} },
-	  Callback: function() { Engine.IncCurrency("Coins", 50); }
+	  Condition: function() { if (eiEngine.GetPlayer("Clicks") >= 20) {return true;} },
+	  //Callback function on achievements is called when they are awarded, used to give a reward, optional
+	  Callback: function() { eiEngine.IncCurrency("Coins", 50); }
 	});
-Engine.CreateAchievement("Richer",
+eiEngine.CreateAchievement("Richer",
   {
 	  Name: "Richer",
 	  Desc: "Collect 75 coins",
-	  Condition: function() { if (Engine.Player.Currency.Coins.Count >= 75) {return true;} },
-	  Callback: function() { Engine.IncCurrency("Coins", 50); }
+	  Condition: function() { if (eiEngine.GetCurrency("Coins", "Count") >= 75) {return true;} },
+	  Callback: function() { eiEngine.IncCurrency("Coins", 50); }
 	});
+eiEngine.CreateAchievement("Recursive",
+  {
+    Name: "Recursive",
+    Desc: "Collect 300 coins",
+    Condition: function() { if (eiEngine.GetCurrency("Coins", "Count") >= 300) {return true;} },
+    Callback: function() { eiEngine.AlterCurrency("Coins", "PerSec", +2); }
+  });
 
 
 	/** upgrades **/
-Engine.Settings.ShowPurchased = true;
-Engine.Settings.UpgradeLocation = [650, 32];
-Engine.Settings.UpgradeSize = [140,40];
+	
+//Create the "Sidebar" frame, attach the frame to page "Main", then x, y, w, h, ShowTabs
+eiEngine.CreateFrame("Sidebar", "Main", 630, 10, 160, 300, true);
 
-Engine.CreateUpgrade("ClickUp1",
+//Create the upgrades page and attach it to the sidebar frame
+eiEngine.CreatePage("Upgrades", "Sidebar");
+//Set the upgrades page to be shown (it knows what frame it's attached to already)
+eiEngine.ShowPage("Upgrades");
+
+//misc upgrades settings ------------------------------------------------------- (to be deprecated to groups !!!!)
+eiEngine.SetSetting("ShowPurchased", true, "UpgradeLocation", [10, 10], "UpgradeSize", [140,40]);
+
+//Not actually a button, just header text
+//Buttons without a "callback" aren't compared against mouse coordinates, so are very light
+/*
+eiEngine.CreateButton("UpgdText", "Upgrades",
   {
-    Text: "+1 per Click",
+	  text: "Upgrades:", text_font: "Verdana", text_size: 20, text_color: "black", text_opacity: 1,
+		x: 10, y: 8, //position
+		w: 140, h: 24 //size
+  });
+*/
+
+//Add an upgrade to the Upgrades page
+eiEngine.CreateUpgrade("ClickUp1", "Upgrades",
+  {
+    Text: "+1 per Click", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
     Desc: "More coins for each click!",
-    Cost: [["Coins",10]],
+    Cost: [["Coins",10]], //Cost for upgrades supplied in a 2d array, allows for multiple purchase costs
     Callback: function() {
-      Engine.Player.Currency.Coins.PerClick += 1;
-      Engine.CreateUpgrade("ClickUp2",
+      eiEngine.AlterCurrency("Coins", "PerClick", +1);
+      //As part of it's action, the ClickUp1 upgrade creates another available upgrade when it is purchased
+      //this sets up a chain of required upgrades, if this chain gets long, it would be better to refer to an outside function
+      eiEngine.CreateUpgrade("ClickUp2", "Upgrades",
       {
-        Text: "+2 per Click",
+        Text: "+2 per Click", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
         Desc: "Yet more coins for each click.",
         Cost: [["Coins",75]],
         Callback: function() {
-          Engine.Player.Currency.Coins.PerClick += 2;
+          eiEngine.AlterCurrency("Coins", "PerClick", +2);
         }
       });
     }
   });
-Engine.CreateUpgrade("IncUp1",
+  
+//A second initial upgrade with chained successors via callback
+eiEngine.CreateUpgrade("IncUp1", "Upgrades",
 {
-  Text: "+1 per second",
+  Text: "+1 per second", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
   Desc: "Coins for nothing!",
   Cost: [["Coins",50]],
   Callback: function() {
-     Engine.Player.Currency.Coins.PerSec += 1;
-     Engine.CreateUpgrade("IncUp2",
+     eiEngine.AlterCurrency("Coins", "PerSec", +1);
+     eiEngine.CreateUpgrade("IncUp2", "Upgrades",
      {
-       Text: "+2 per second",
+       Text: "+2 per second", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
        Desc: "More free coins!",
        Cost: [["Coins",150]],
        Callback: function() {
-         Engine.Player.Currency.Coins.PerSec += 2;
-         Engine.CreateUpgrade("EndGame",
+         eiEngine.AlterCurrency("Coins", "PerSec", +2);
+         eiEngine.CreateUpgrade("EndGame", "Upgrades",
          {
-	       Text: "Woohoo!",
+	       Text: "Woohoo!", text_font: "Verdana", text_size: 12, text_color: "black", text_opacity: 1,
 	       Desc: "You won the game!",
 	       Cost: [["Coins",450]],
 	       Callback: function() {
-             alert("Congratulations, you won!\r\nIt only took you " + Engine.Player.Clicks + " clicks!");
-             Engine.Reset();
+             alert("Congratulations, you won!\r\nIt only took you " + eiEngine.GetPlayer("Clicks") + " clicks!");
+             eiEngine.Reset();
            }
          });
        }
@@ -139,4 +174,26 @@ Engine.CreateUpgrade("IncUp1",
    }
 });
 
+//Create a second test page, to show off frame tabs
+eiEngine.CreatePage("Data", "Sidebar");
 
+eiEngine.CreateButton("Save", "Data",
+	{
+	  image: "ButtonBG", opacity: 1,
+	  text: "Save", text_font: "Verdana", text_size: 14, text_color: "white", text_opacity: 1,
+		x: 10, y: 10, 
+		w: 140, h: 40, 
+		Callback: function () { eiEngine.Save(); }
+	});
+eiEngine.CreateButton("Reset", "Data",
+	{
+	  image: "ButtonBG", opacity: 1,
+	  text: "Reset", text_font: "Verdana", text_size: 14, text_color: "white", text_opacity: 1,
+	  color: "silver",
+		x: 10, y: 60, 
+		w: 140, h: 40, 
+		Callback: function () { eiEngine.Reset(); }
+	});
+
+//After everything is added and window loads, initialize the engine
+window.onload = eiEngine.Init();
