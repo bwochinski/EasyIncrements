@@ -11,14 +11,22 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	  SaveInterval: 20, //In seconds
 	  HudFont: "Verdana",
 	  HudSize: 18,
-	  HudColor: "white",
+	  HudColor: "black",
 	  StatusLocation: [canvasW * 0.3, 32], //Canvas.height - 32],
 	  ParticleColor: "orange",
 	  ParticleSize: 32,
 	  ParticleFont: "Arial",
 	  UpgradeLocation: [650, 32],
 	  UpgradeSize: [150, 40],
-	  ShowPurchased: true
+	  ShowPurchased: true,
+	  FrameTabs: {
+	  	TabHeight: 24,
+	  	TabSpacing: 8,
+	  	TabActive: "white",
+	  	TabInactive: "silver",
+	  	text_size: 14,
+	  	text_color: "black"
+	  }
 	};
 	
 	var GetSetting = function(name) {
@@ -390,7 +398,7 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		// Recursively call for all frames and pages
 		for (var fr in Pages[page].Frames) {
 			if (Pages[page].Frames[fr].CurPage) {
-				hoverPageButtons(evt, Pages[page].Frames[fr].CurPage, offX + Pages[page].Frames[fr].x, offY + Pages[page].Frames[fr].y);
+				hoverPageButtons(evt, Pages[page].Frames[fr].CurPage, offX + Pages[page].Frames[fr].x, offY + Pages[page].Frames[fr].y + (Pages[page].Frames[fr].ShowTabs ? Settings.FrameTabs.TabHeight : 0));
 			}
 		}
 		
@@ -418,6 +426,7 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
         upOffset += Settings.UpgradeSize[1] + 8;
 		  }
 		}
+		
 	};
 	
 	var AddClick = function() { 
@@ -453,6 +462,21 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 			} else if (Player.CurUpgrade) {
 				Pages[Player.CurUpgradePg].Upgrades[Player.CurUpgrade].Clicked = false;
 				BuyUpgrade(Player.CurUpgrade, Player.CurUpgradePg);
+			}
+			
+			//check mouse position against any frame tabs on this page
+			evt = getCanvasPos(Canvas, evt);
+			var page = Player.CurPage;
+			for (var cFrm in Pages[page].Frames) {
+				if (Pages[page].Frames[cFrm].ShowTabs === true ) {
+					var curFrm = Pages[page].Frames[cFrm];
+					//console.log(evt.X + " <= " + curFrm.x + curFrm.w);
+					if (evt.X >= curFrm.x && evt.X <= (curFrm.x + curFrm.w) && evt.Y >= curFrm.y && evt.Y <= (curFrm.y + Settings.FrameTabs.TabHeight)) {
+						var tabSize = curFrm.w / curFrm.Pages.length;
+						var tabNum = Math.floor((evt.X - curFrm.x) / tabSize);
+						ShowPage(curFrm.Pages[tabNum]);
+					}
+				}
 			}
 			return false;
 		});
@@ -545,15 +569,48 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		
 		for (var frm in Pages[page].Frames) {
 			var curFrm = Pages[page].Frames[frm];
-			Canvas.Context.clearRect(curFrm.x, curFrm.y, curFrm.w, curFrm.h);
-			RenderRect(curFrm.x, curFrm.y, curFrm.w, curFrm.h, curFrm.border_color, (curFrm.border ? 1 : 0), false);
+			//Canvas.Context.measureText(text).width;
+			Canvas.Context.clearRect(curFrm.x, curFrm.y + (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0), curFrm.w, curFrm.h - (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0));
+			RenderRect(curFrm.x, curFrm.y + (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0), curFrm.w, curFrm.h - (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0), curFrm.border_color, (curFrm.border ? 1 : 0), false);
+			if (curFrm.ShowTabs === true) {
+				var tabOffset = 1;
+				var tabW = (curFrm.w / curFrm.Pages.length) - Settings.FrameTabs.TabSpacing;
+				for (var curTab in curFrm.Pages) {
+			    RenderButton({
+			      x: curFrm.x + tabOffset,
+			      y: curFrm.y + (curFrm.Pages[curTab] == curFrm.CurPage ? 1 : -1),
+			      w: tabW,
+			      h: Settings.FrameTabs.TabHeight,
+			      color: (curFrm.CurPage == curFrm.Pages[curTab] ? Settings.FrameTabs.TabActive : Settings.FrameTabs.TabInactive),
+			      opacity: 1,
+			      text: curFrm.Pages[curTab],
+			      text_font: "Verdana",
+			      text_size: Settings.FrameTabs.text_size,
+			      text_color: Settings.FrameTabs.text_color,
+			      text_opacity: 1,
+			      xAlign: "center",
+			      yAlign: "center"
+			    });
+			    RenderRect(
+			    	curFrm.x + tabOffset,
+			    	curFrm.y + (curFrm.Pages[curTab] == curFrm.CurPage ? 1 : -1),
+			    	tabW,
+			    	Settings.FrameTabs.TabHeight,
+			    	curFrm.border_color,
+			    	(curFrm.border ? 1 : 0),
+			    	false
+			    );
+			    tabOffset += tabW + Settings.FrameTabs.TabSpacing;
+				}
+			}
 			//console.log(curFrm);
 			if (curFrm.CurPage !== null) {
+				//clip and translate the drawing area to the frame and call page render for the current page of that frame
 				Canvas.Context.save();
-				Canvas.Context.rect(curFrm.x, curFrm.y, curFrm.w, curFrm.h);
+				Canvas.Context.rect(curFrm.x, curFrm.y + (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0), curFrm.w, curFrm.h - (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0));
 				Canvas.Context.clip();
 				Canvas.Context.beginPath();
-				Canvas.Context.translate(curFrm.x, curFrm.y);
+				Canvas.Context.translate(curFrm.x, curFrm.y + (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0));
 				RenderPages(curFrm.CurPage);
 				Canvas.Context.restore();
 			}
