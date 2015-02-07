@@ -81,6 +81,9 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	};
 	
 	var CreateButton = function(name, page, btn) {
+		if (!Pages[page]) {
+			console.log("Page " + page + " not found.");
+		}
 	  Pages[page].Buttons[name] = btn;
 	};
 	
@@ -560,8 +563,6 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		
 		/** background **/
 		if (Images[Pages[page].Background]) {
-			//console.log(Pages[page]);
-			//console.log("frame " + Pages[Pages[page].Parent[0]].Frames[Pages[page].Parent[1]]);
 			var bgFrame = null;
 			if (Pages[page].Parent[1]) {
 				bgFrame = Pages[Pages[page].Parent[0]].Frames[Pages[page].Parent[1]];
@@ -633,8 +634,19 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 			RenderRect(curFrm.x, curFrm.y + (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0), curFrm.w, curFrm.h - (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0), curFrm.BorderColor, (curFrm.Border ? 1 : 0), false);
 			if (curFrm.ShowTabs === true) {
 				var tabOffset = 1;
-				var tabW = (curFrm.w / curFrm.Pages.length) - Settings.FrameTabs.TabSpacing;
+				//var tabW = (curFrm.w / curFrm.Pages.length) - Settings.FrameTabs.TabSpacing;
+				var numTabs = curFrm.Pages.length;
+				var maxTabW = Math.floor(curFrm.w / numTabs);
 				for (var curTab in curFrm.Pages) {
+					var curText = curFrm.Pages[curTab];
+					if (Canvas.Context.measureText(curText).width + 4 + Settings.FrameTabs.TabSpacing > maxTabW) {
+						var elipseLen = Canvas.Context.measureText("...").width;
+						while (Canvas.Context.measureText(curText).width + elipseLen + 4 + Settings.FrameTabs.TabSpacing > maxTabW) {
+							curText = curText.substr(0,curText.length - 1);
+						}
+						curText += "...";
+					}
+					var tabW = Canvas.Context.measureText(curText).width + 4;
 			    RenderButton({
 			      x: curFrm.x + tabOffset,
 			      y: curFrm.y + (curFrm.Pages[curTab] == curFrm.CurPage ? 1 : -1),
@@ -642,7 +654,7 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 			      h: Settings.FrameTabs.TabHeight,
 			      Color: (curFrm.CurPage == curFrm.Pages[curTab] ? Settings.FrameTabs.TabActive : Settings.FrameTabs.TabInactive),
 			      Opacity: 1,
-			      Text: curFrm.Pages[curTab],
+			      Text: curText,
 			      TextFont: "Verdana",
 			      TextSize: Settings.FrameTabs.TextSize,
 			      TextColor: Settings.FrameTabs.TextColor,

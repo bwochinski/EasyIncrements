@@ -175,9 +175,9 @@ eiEngine.CreateUpgrade("IncUp1", "Upgrades",
 });
 
 //Create a second test page, to show off frame tabs
-eiEngine.CreatePage("Data", "Sidebar");
+eiEngine.CreatePage("Save Data Tab", "Sidebar");
 
-eiEngine.CreateButton("Save", "Data",
+eiEngine.CreateButton("Save", "Save Data Tab",
 	{
 	  Image: "ButtonBG", Opacity: 1,
 	  Text: "Save", TextFont: "Verdana", TextSize: 14, TextColor: "white", TextOpacity: 1,
@@ -185,7 +185,7 @@ eiEngine.CreateButton("Save", "Data",
 		w: 140, h: 40, 
 		Callback: function () { eiEngine.Save(); }
 	});
-eiEngine.CreateButton("Reset", "Data",
+eiEngine.CreateButton("Reset", "Save Data Tab",
 	{
 	  Image: "ButtonBG", Opacity: 1,
 	  Text: "Reset", TextFont: "Verdana", TextSize: 14, TextColor: "white", TextOpacity: 1,
