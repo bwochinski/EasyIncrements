@@ -13,6 +13,7 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	  HudSize: 18,
 	  HudColor: "black",
 	  StatusLocation: [canvasW * 0.3, 32], //Canvas.height - 32],
+	  StatusTime: 3000,
 	  ParticleColor: "orange",
 	  ParticleSize: 32,
 	  ParticleFont: "Arial",
@@ -24,21 +25,9 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	  	TabSpacing: 8,
 	  	TabActive: "white",
 	  	TabInactive: "silver",
-	  	text_size: 14,
-	  	text_color: "black"
+	  	TextSize: 14,
+	  	TextColor: "black"
 	  }
-	};
-	
-	var GetSetting = function(name) {
-		if (Settings[name] !== null) {
-			return Settings[name];
-		}
-	};
-	
-	var SetSetting = function(name, val) {  //list any number of settings: SetSetting(name1, val1, name2, val2 .. nameN, valN)
-		for (var i = 1; i < arguments.length; i += 2) {
-			Settings[arguments[i-1]] = arguments[i];
-		}
 	};
 	
 	var Player = { //the player object
@@ -50,10 +39,6 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		CurUpgradePg: null,
 		MouseDown: false,
 		Currency: {} //Stores all currency information
-	};
-	
-	var GetPlayer = function(name) {
-		return Player[name];
 	};
 	
 	var StatusMessage = ""; //status message
@@ -73,85 +58,30 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	var Pages = {};
 	var Achievements = {};
 	var Images = {};
-
-	/** functions **/
-	var Init = function() { //initialize the engine and start game loop
-		Canvas = document.createElement('canvas'); //create a canvas element
-		Canvas.id = "display"; //give it an id to reference later
-		Canvas.width = Settings.CanvasSize[0]; //the width
-		Canvas.height = Settings.CanvasSize[1]; //the height
-		$('body').append(Canvas); //finally append the canvas to the page
-		$(Canvas).css("border", "1px solid gray"); //set a border on the canvas
-
-		if (window.localStorage.getItem("eiEngine-info")) { //does a save exist
-			Load(); //load save game
-		}
-
-		AddClick(); //start the main click event
-		StartAutoSave(); //start auto-saving progress
-		StartIncrement(); //start the auto coins
-		achievementTimer(); //check for achievements once per second
-		Canvas.Context = Canvas.getContext('2d'); //set the canvas to render in 2d.
-		setCanvasPos(); //get canvas position and size info
-		GameLoop(); //run the game loop!
-
+	
+	
+	/*********************** Alter Functions ***********************************/
+	
+	var AlterButton = function(name, page, btn) {
+		$.extend(true,Pages[page].Buttons[name],btn);
 	};
 	
-	var SetHud = function(size, font, color) {
-	  Settings.HudSize = size;
-	  Settings.HudFont = font;
-	  Settings.HudColor = color;
-	};
-	
-	var CreateFrame = function(name, page, x, y, w, h, tabs, border, border_color) {
-		Pages[page].Frames[name] = {
-			x:x,
-			y:y,
-			w:w,
-			h:h,
-			border: (border || border == null ? true : false),
-			border_color: (border_color ? border_color : "gray"),
-			Pages: new Array(),
-			CurPage: null,
-			ShowTabs: (tabs === true ? true : false)
-		};
-	};
-	
-	var GetFrameParent = function(frame) {
-		for (var pg in Pages) {
-			if (Pages[pg].Frames[frame] != null) {
-				return pg;
-			}
-		}
-		return false;
-	};
-	
-	var CreatePage = function(name, frame) {
-		if (frame != null) {
-			var frmParent = GetFrameParent(frame);
-			if (frmParent === false) {
-				console.log("Frame '" + frame + "' not found, create the frame before adding pages to it.");
-				return;
-			} else {
-				Pages[frmParent].Frames[frame].Pages.push(name);
-			}
-		}
-		Pages[name] = {
-			Parent: (frame == null ? null : frame),
-			Particles: new Array(),
-			Buttons: {},
-			Upgrades: {},
-			Frames: {}
-		};
-	};
-	
-	var ShowPage = function(name) {
-		if (Pages[name].Parent != null) {
-			var root = GetFrameParent(Pages[name].Parent);
-			Pages[root].Frames[Pages[name].Parent].CurPage = name;
+	var AlterCurrency = function(name, attrib, val) {
+		if (isInt(val)) {
+			Player.Currency[name][attrib] += val;
 		} else {
-			Player.CurPage = name;
+			Player.Currency[name][attrib] = val;
 		}
+	};
+	
+	/************************ Create Functions *********************************/
+	
+	var CreateAchievement = function(name, achv) {
+	  Achievements[name] = achv;
+	};
+	
+	var CreateButton = function(name, page, btn) {
+	  Pages[page].Buttons[name] = btn;
 	};
 	
 	var CreateCurrency = function(name, ShwPerClick, ShwPerSec) {
@@ -170,32 +100,38 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	  };
 	};
 	
-	var GetCurrency = function(name, attrib) {
-		return Player.Currency[name][attrib];
+	var CreateFrame = function(name, page, x, y, w, h, tabs, border, border_color) {
+		Pages[page].Frames[name] = {
+			x:x,
+			y:y,
+			w:w,
+			h:h,
+			Border: (border || border == null ? true : false),
+			BorderColor: (border_color ? border_color : "gray"),
+			Pages: new Array(),
+			CurPage: null,
+			ShowTabs: (tabs === true ? true : false)
+		};
 	};
 	
-	var AlterCurrency = function(name, attrib, val) {
-		if (isInt(val)) {
-			Player.Currency[name][attrib] += val;
-		} else {
-			Player.Currency[name][attrib] = val;
+	var CreatePage = function(name, frame) {
+		var frmParent = null;
+		if (frame != null) {
+			frmParent = GetFrameParent(frame);
+			if (frmParent === false) {
+				console.log("Frame '" + frame + "' not found, create the frame before adding pages to it.");
+				return;
+			} else {
+				Pages[frmParent].Frames[frame].Pages.push(name);
+			}
 		}
-	};
-	
-	var CreateButton = function(name, page, btn) {
-	  Pages[page].Buttons[name] = btn;
-	};
-	
-	var UpdateButton = function(name, page, btn) {
-		$.extend(true,Pages[page].Buttons[name],btn);
-	};
-	
-	var CreateAchievement = function(name, achv) {
-	  Achievements[name] = achv;
-	};
-	
-	var CreateUpgrade = function(name, page, upgrd) {
-	  Pages[page].Upgrades[name] = upgrd;
+		Pages[name] = {
+			Parent: (frame == null ? [null, null] : [frmParent, frame]),
+			Particles: new Array(),
+			Buttons: {},
+			Upgrades: {},
+			Frames: {}
+		};
 	};
 	
 	var CreateParticle = function(page, ix, iy, chr) {
@@ -207,84 +143,96 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		Pages[page].Particles.push({ x:x, y:y, o:10.0, chr: chr }); //push the particle into the array
 	};
 	
-	var AddImage = function(name, fileName) {
-	  Images[name] = { File: fileName, Image: new Image() };
-	  Images[name].Image.src = fileName;
+	var CreateUpgrade = function(name, page, upgrd) {
+	  Pages[page].Upgrades[name] = upgrd;
+	};
+
+	/************************ Get Functions ************************************/
+	
+	//adjust mouse position relative to the Canvas position and size, not the page
+	var getCanvasPos = function(canvas, evt) {
+	  return {
+	    X: Math.round((evt.clientX-Canvas.Rect.left)/(Canvas.Rect.right-Canvas.Rect.left)*Canvas.width),
+			Y: Math.round((evt.clientY-Canvas.Rect.top)/(Canvas.Rect.bottom-Canvas.Rect.top)*Canvas.height)
+	  };
 	};
 	
-	var SetBackground = function(imgName) {
+	var GetCurrency = function(name, attrib) {
+		return Player.Currency[name][attrib];
+	};
+	
+	var GetFrameParent = function(frame) {
+		for (var pg in Pages) {
+			if (Pages[pg].Frames[frame] != null) {
+				return pg;
+			}
+		}
+		return false;
+	};
+
+	var GetPlayer = function(name) {
+		return Player[name];
+	};
+	
+	var GetSetting = function(name) {
+		if (Settings[name] !== null) {
+			return Settings[name];
+		}
+	};
+	
+
+
+	/************************* Set functions ***********************************/
+	
+	var SetBackground = function(page, imgName) {
 		if (Images[imgName]) {
-	  	Settings.Background = imgName;
+	  	Pages[page].Background = imgName;
 		} else {
 			console.log("Error setting background to " + imgName + ", image object does not exist.");
 		}
 	};
 	
-	//Increment a currency according to it's PerClick rate
-	var ClickCurrency = function(curn) {
-	  Player.Clicks++; //add a click
-	  IncCurrency(curn, Player.Currency[curn].PerClick);
+	//Re-get canvas size and position, called on resize
+	var setCanvasPos = function() {
+		Canvas.Rect = Canvas.getBoundingClientRect();
 	};
 	
-	//Increment a currency by a set amount
-	var IncCurrency = function(curn, amt) { //the new coin adding function
-		Player.Currency[curn].Count += amt; //increase coins by amount
-	};
-	
-	//
-	var DecCurrency = function(curn, amt) {
-	  if (Player.Currency[curn].Count >= amt ) {
-	    Player.Currency[curn].Count -= amt;
-	    return true;
-	  } else {
-	    return false;
-	  }
-	};
-	
-	//check if the player has enough of multiple currencies at once
-	//if they do, then decrement them and return "true"
-	var MultiDecCurrency = function(curnList) {
-	  for (var i = 0; i < curnList.length; i++) {
-	    if (Player.Currency[curnList[i][0]].Count < curnList[i][1]) {
-	      SetStatus("Error: Not enough " + curnList[i][0]);
-	      return false;
-	    }
-	  }
-
-	  for (var i = 0; i < curnList.length; i++) {
-	    Player.Currency[curnList[i][0]].Count -= curnList[i][1];
-	  }
-	  return true;
-	};
-	
-	var achievementTimer = function() {
-		Timers.Achievements = setInterval(function() { //set the Timer as an interval
- 			CheckAchievements();
-		}, 1000);
-	};
-	
-	var CheckAchievements = function() {
-		for (var a in Achievements) { //loop through each achievement in the object
-		  if (Achievements[a].Get !== true) { //if not already earned this achievement
-  			if (Achievements[a].Condition()) { //check the achievement condition
-  			  Achievements[a].Get = true;
-  				SetStatus("ACHIEVEMENT! " + Achievements[a].Name); //show message with achievement name
-  				if (Achievements[a].Callback) {
-  				  Achievements[a].Callback(); //call the achievement code, if it exists
-  				}
-  			}
-		  }
+	//sets the currently hovered button
+	var setCurButton = function(name, page, upgrade) {
+		if (upgrade !== true) {
+			if (Player.CurButton !== null && Player.CurButton != name && Player.CurButtonPg != page) {
+				Pages[Player.CurButtonPg].Buttons[Player.CurButton].Clicked = false;
+			}
+			Player.CurButton = name;
+			Player.CurButtonPg = page;
+			if (name !== null && Player.MouseDown == true) {
+				Pages[page].Buttons[name].Clicked = true;
+			}
+		} else {
+			if (Player.CurUpgrade !== null && Player.CurUpgrade != name && Player.CurUpgradePg != page) {
+				Pages[Player.CurUpgradePg].Upgrades[Player.CurUpgrade].Clicked = false;
+			}
+			Player.CurUpgrade = name;
+			Player.CurUpgradePg = page;
+			if (name !== null && Player.MouseDown == true) {
+				Pages[page].Upgrades[name].Clicked = true;
+			}
 		}
 	};
 	
-	var BuyUpgrade = function(upgrd, page) {
-		var up = Pages[page].Upgrades[upgrd];
-		if (up.Get !== true) { //if not already purchased
-		  if (MultiDecCurrency(up.Cost)) { //check if the player can afford it
-		    up.Get = true; //set to purchased
-		    up.Callback(); //call the upgrade code
-		    SetStatus("UPGRADE! " + up.Text);
-		  }
+	var SetHud = function(size, font, color) {
+	  Settings.HudSize = size;
+	  Settings.HudFont = font;
+	  Settings.HudColor = color;
+	};
+	
+	var SetSetting = function(name, val) {  //list any number of settings: SetSetting(name1, val1, name2, val2 .. nameN, valN)
+		for (var i = 1; i < arguments.length; i += 2) {
+			if (typeof(Settings[arguments[i-1]]) === typeof(arguments[i])) {
+				Settings[arguments[i-1]] = arguments[i];
+			} else {
+				console.log("Unable to set " + arguments[i-1] + " to supplied value of '" + arguments[i] + "', mismatched type. Expected: " + typeof(Settings[arguments[i-1]]));
+			}
 		}
 	};
 	
@@ -295,7 +243,39 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 			StatusMessage = ""; //set the status back to nothing
 			clearTimeout(Timers.StatusMessage); //clear it
 			Timers.StatusMessage = null; //set to null for completeness
-		}, 3000);
+		}, Settings.StatusTime);
+	};
+	
+
+	
+
+	/*********************** System Functions **********************************/
+	
+	var AddImage = function(name, fileName) {
+	  Images[name] = { File: fileName, Image: new Image() };
+	  Images[name].Image.src = fileName;
+	};
+	
+	var Init = function() { //initialize the engine and start game loop
+		Canvas = document.createElement('canvas'); //create a canvas element
+		Canvas.id = "display"; //give it an id to reference later
+		Canvas.width = Settings.CanvasSize[0]; //the width
+		Canvas.height = Settings.CanvasSize[1]; //the height
+		$('body').append(Canvas); //finally append the canvas to the page
+		$(Canvas).css("border", "1px solid gray"); //set a border on the canvas
+
+		if (window.localStorage.getItem("eiEngine-info")) { //does a save exist
+			Load(); //load save game
+		}
+
+		AddListeners(); //start the event listeners
+		StartAutoSave(); //start auto-saving progress
+		StartIncrement(); //start the auto coins
+		achievementTimer(); //check for achievements once per second
+		Canvas.Context = Canvas.getContext('2d'); //set the canvas to render in 2d.
+		setCanvasPos(); //get canvas position and size info
+		GameLoop(); //run the game loop!
+
 	};
 	
 	var Save = function() { //save function
@@ -337,8 +317,7 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 			window.location.reload(); //refresh page to restart
 		}
 	};
-
-	/** event handlers **/
+	
 	var StartIncrement = function() { //automatic currency increment
 		Timers.Increment = setInterval(function() { //set the Timer as an interval
 		  for (var curn in Player.Currency) {
@@ -354,42 +333,98 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	  }, Settings.SaveInterval * 1000);
 	};
 	
-	//adjust mouse position relative to the Canvas position and size, not the page
-	var getCanvasPos = function(canvas, evt) {
-	  return {
-	    X: Math.round((evt.clientX-Canvas.Rect.left)/(Canvas.Rect.right-Canvas.Rect.left)*Canvas.width),
-			Y: Math.round((evt.clientY-Canvas.Rect.top)/(Canvas.Rect.bottom-Canvas.Rect.top)*Canvas.height)
-	  };
+	var achievementTimer = function() {
+		Timers.Achievements = setInterval(function() { //set the Timer as an interval
+ 			CheckAchievements();
+		}, 1000);
 	};
 	
-	//Re-get canvas size and position, called on resize
-	var setCanvasPos = function() {
-		Canvas.Rect = Canvas.getBoundingClientRect();
-	};
-	
-	//sets the currently hovered button
-	var setCurButton = function(name, page, upgrade) {
-		if (upgrade !== true) {
-			if (Player.CurButton !== null && Player.CurButton != name && Player.CurButtonPg != page) {
-				Pages[Player.CurButtonPg].Buttons[Player.CurButton].Clicked = false;
-			}
-			Player.CurButton = name;
-			Player.CurButtonPg = page;
-			if (name !== null && Player.MouseDown == true) {
-				Pages[page].Buttons[name].Clicked = true;
-			}
-		} else {
-			if (Player.CurUpgrade !== null && Player.CurUpgrade != name && Player.CurUpgradePg != page) {
-				Pages[Player.CurUpgradePg].Upgrades[Player.CurUpgrade].Clicked = false;
-			}
-			Player.CurUpgrade = name;
-			Player.CurUpgradePg = page;
-			if (name !== null && Player.MouseDown == true) {
-				Pages[page].Upgrades[name].Clicked = true;
-			}
+	var CheckAchievements = function() {
+		for (var a in Achievements) { //loop through each achievement in the object
+		  if (Achievements[a].Get !== true) { //if not already earned this achievement
+  			if (Achievements[a].Condition()) { //check the achievement condition
+  			  Achievements[a].Get = true;
+  				SetStatus("ACHIEVEMENT! " + Achievements[a].Name); //show message with achievement name
+  				if (Achievements[a].Callback) {
+  				  Achievements[a].Callback(); //call the achievement code, if it exists
+  				}
+  			}
+		  }
 		}
 	};
 	
+	
+	var ShowPage = function(name) {
+		if (Pages[name].Parent[1] != null) {
+			var root = Pages[name].Parent[0];
+			Pages[root].Frames[Pages[name].Parent[1]].CurPage = name;
+		} else {
+			Player.CurPage = name;
+		}
+	};
+	
+
+	
+
+	
+
+	
+	//Increment a currency according to it's PerClick rate
+	var ClickCurrency = function(curn) {
+	  Player.Clicks++; //add a click
+	  IncCurrency(curn, Player.Currency[curn].PerClick);
+	};
+	
+	//Increment a currency by a set amount
+	var IncCurrency = function(curn, amt) { //the new coin adding function
+		Player.Currency[curn].Count += amt; //increase coins by amount
+	};
+	
+	//
+	var DecCurrency = function(curn, amt) {
+	  if (Player.Currency[curn].Count >= amt ) {
+	    Player.Currency[curn].Count -= amt;
+	    return true;
+	  } else {
+	    return false;
+	  }
+	};
+	
+	//check if the player has enough of multiple currencies at once
+	//if they do, then decrement them and return "true"
+	var MultiDecCurrency = function(curnList) {
+	  for (var i = 0; i < curnList.length; i++) {
+	    if (Player.Currency[curnList[i][0]].Count < curnList[i][1]) {
+	      SetStatus("Error: Not enough " + curnList[i][0]);
+	      return false;
+	    }
+	  }
+
+	  for (var i = 0; i < curnList.length; i++) {
+	    Player.Currency[curnList[i][0]].Count -= curnList[i][1];
+	  }
+	  return true;
+	};
+	
+
+	
+	var BuyUpgrade = function(upgrd, page) {
+		var up = Pages[page].Upgrades[upgrd];
+		if (up.Get !== true) { //if not already purchased
+		  if (MultiDecCurrency(up.Cost)) { //check if the player can afford it
+		    up.Get = true; //set to purchased
+		    up.Callback(); //call the upgrade code
+		    SetStatus("UPGRADE! " + up.Text);
+		  }
+		}
+	};
+	
+
+	
+
+
+	/** event handlers **/
+
 	//tracking of hover events
 	var hoverPageButtons = function(evt, page, oX, oY) {
 		var offX = (oX ? oX : 0);
@@ -429,11 +464,12 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		
 	};
 	
-	var AddClick = function() { 
+	var AddListeners = function() { 
 		$(Canvas).on('click', function(evt) { 
 			//Click event deprecated in favor of triggering on mouseup
 			return false;
-		}).mousemove(function(evt) { // Track mouse cursor to handle hover effects
+		});
+		$(Canvas).on('mousemove', function(evt) { // Track mouse cursor to handle hover effects
 
 			//Reset button status each frame, so only one is being hovered
 			//(Must go here, not in recursive function)
@@ -444,9 +480,10 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 			return false;
 		});
 		
-		$(window).resize(function() { //Get canvas size and position on window resize
+		$(window).on('resize', function() { //Get canvas size and position on window resize
 			setCanvasPos();
-		}).on('mousedown', function(evt) { //watch for mouse down events anywhere
+		});
+		$(window).on('mousedown', function(evt) { //watch for mouse down events anywhere
 			Player.MouseDown = true;
 			if (Player.CurButton) {
 				Pages[Player.CurButtonPg].Buttons[Player.CurButton].Clicked = true;
@@ -454,7 +491,8 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 				Pages[Player.CurUpgradePg].Upgrades[Player.CurUpgrade].Clicked = true;
 			}
 			return false;
-		}).on('mouseup', function(evt) { // watch for mouse up events anywhere
+		});
+		$(window).on('mouseup', function(evt) { // watch for mouse up events anywhere
 			Player.MouseDown = false;
 			if (Player.CurButton) {
 				Pages[Player.CurButtonPg].Buttons[Player.CurButton].Clicked = false;
@@ -470,7 +508,6 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 			for (var cFrm in Pages[page].Frames) {
 				if (Pages[page].Frames[cFrm].ShowTabs === true ) {
 					var curFrm = Pages[page].Frames[cFrm];
-					//console.log(evt.X + " <= " + curFrm.x + curFrm.w);
 					if (evt.X >= curFrm.x && evt.X <= (curFrm.x + curFrm.w) && evt.Y >= curFrm.y && evt.Y <= (curFrm.y + Settings.FrameTabs.TabHeight)) {
 						var tabSize = curFrm.w / curFrm.Pages.length;
 						var tabNum = Math.floor((evt.X - curFrm.x) / tabSize);
@@ -482,7 +519,16 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		});
 	};
 
-	/** animation routines **/
+	/**************************** Update Functions *****************************/
+
+	var GameRunning = null;
+	var GameLoop = function() { //the gameloop function
+		GameRunning = setTimeout(function() {
+			window.requestAnimFrame(Update, Canvas);  //call animation frame
+		}, 1);
+	};
+
+	// animation routine
 	var updateParticles = function(page) {
 		for (var p = 0; p < Pages[page].Particles.length; p++) { //loop through particles
 			Pages[page].Particles[p].y--; //move up by 1px
@@ -508,9 +554,22 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	};
 	
 	
-	/** Render Game **/
+	/**************************** Render Functions *****************************/
 	
 	var RenderPages = function(page) {
+		
+		/** background **/
+		if (Images[Pages[page].Background]) {
+			//console.log(Pages[page]);
+			//console.log("frame " + Pages[Pages[page].Parent[0]].Frames[Pages[page].Parent[1]]);
+			var bgFrame = null;
+			if (Pages[page].Parent[1]) {
+				bgFrame = Pages[Pages[page].Parent[0]].Frames[Pages[page].Parent[1]];
+			} else {
+				bgFrame = {w: Canvas.width, h: Canvas.height};
+			}
+  		RenderImage(Images[Pages[page].Background].Image, 0, 0, bgFrame.w, bgFrame.h, 1); //background image drawing
+		}
 		
 		//render upgrade buttons
 		var upOffset = 0;
@@ -526,16 +585,16 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		      y: Settings.UpgradeLocation[1] + upOffset,
 		      w: Settings.UpgradeSize[0],
 		      h: Settings.UpgradeSize[1],
-		      color: curColor,
-		      opacity: 1,
-		      text: curUp.Text,
-		      text_font: "Verdana",
-		      text_size: curUp.text_size,
-		      text_color: curUp.text_color,
-		      text_opacity: 1,
+		      Color: curColor,
+		      Opacity: curUp.Opacity,
+		      Text: curUp.Text,
+		      TextFont: curUp.text_font,
+		      TextSize: curUp.text_size,
+		      TextColor: curUp.text_color,
+		      TextOpacity: curUp.text_opacity,
 		      yAlign: "top",
 		      Clicked: curUp.Clicked,
-		      image: curUp.Image
+		      Image: curUp.Image
 		    });
 		    var strCost = "";
 		    for (var i = 0; i < curUp.Cost.length; i++) {
@@ -547,10 +606,10 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		        strCost,
 		        Settings.UpgradeLocation[0] + (curUp.Clicked ? 3 : 0),
 		        Settings.UpgradeLocation[1] + upOffset + (curUp.Clicked ? 2 : 0) - 4,
-		        "Verdana",
+		        curUp.text_font,
 		        curUp.text_size - 2,
 		        curUp.text_color,
-		        1,
+		        curUp.text_opacity,
 		        Settings.UpgradeSize[0] - (curUp.Clicked ? 4 : 0),
 		        Settings.UpgradeSize[1],
 		        "center",
@@ -571,7 +630,7 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 			var curFrm = Pages[page].Frames[frm];
 			//Canvas.Context.measureText(text).width;
 			Canvas.Context.clearRect(curFrm.x, curFrm.y + (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0), curFrm.w, curFrm.h - (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0));
-			RenderRect(curFrm.x, curFrm.y + (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0), curFrm.w, curFrm.h - (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0), curFrm.border_color, (curFrm.border ? 1 : 0), false);
+			RenderRect(curFrm.x, curFrm.y + (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0), curFrm.w, curFrm.h - (curFrm.ShowTabs ? Settings.FrameTabs.TabHeight : 0), curFrm.BorderColor, (curFrm.Border ? 1 : 0), false);
 			if (curFrm.ShowTabs === true) {
 				var tabOffset = 1;
 				var tabW = (curFrm.w / curFrm.Pages.length) - Settings.FrameTabs.TabSpacing;
@@ -581,13 +640,13 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 			      y: curFrm.y + (curFrm.Pages[curTab] == curFrm.CurPage ? 1 : -1),
 			      w: tabW,
 			      h: Settings.FrameTabs.TabHeight,
-			      color: (curFrm.CurPage == curFrm.Pages[curTab] ? Settings.FrameTabs.TabActive : Settings.FrameTabs.TabInactive),
-			      opacity: 1,
-			      text: curFrm.Pages[curTab],
-			      text_font: "Verdana",
-			      text_size: Settings.FrameTabs.text_size,
-			      text_color: Settings.FrameTabs.text_color,
-			      text_opacity: 1,
+			      Color: (curFrm.CurPage == curFrm.Pages[curTab] ? Settings.FrameTabs.TabActive : Settings.FrameTabs.TabInactive),
+			      Opacity: 1,
+			      Text: curFrm.Pages[curTab],
+			      TextFont: "Verdana",
+			      TextSize: Settings.FrameTabs.TextSize,
+			      TextColor: Settings.FrameTabs.TextColor,
+			      TextOpacity: 1,
 			      xAlign: "center",
 			      yAlign: "center"
 			    });
@@ -596,8 +655,8 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 			    	curFrm.y + (curFrm.Pages[curTab] == curFrm.CurPage ? 1 : -1),
 			    	tabW,
 			    	Settings.FrameTabs.TabHeight,
-			    	curFrm.border_color,
-			    	(curFrm.border ? 1 : 0),
+			    	curFrm.BorderColor,
+			    	(curFrm.Border ? 1 : 0),
 			    	false
 			    );
 			    tabOffset += tabW + Settings.FrameTabs.TabSpacing;
@@ -627,10 +686,8 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	var Draw = function() {
 		Canvas.Context.clearRect(0,0,Canvas.width,Canvas.height); //clear the frame
 
-		/** background **/
-		if (Images[Settings.Background]) {
-  		RenderImage(Images[Settings.Background].Image, 0, 0, Canvas.width, Canvas.height, 1); //background image drawing
-		}
+		/** Call Page Drawing **/
+		RenderPages(Player.CurPage);
 
 		/** display/hud **/
 		var curOffset = 32;
@@ -647,9 +704,6 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 			}
 		}
 
-		/** Call Page Drawing **/
-		RenderPages(Player.CurPage);
-
     /** Display Status Message **/
     RenderText(StatusMessage, Settings.StatusLocation[0] + 1, Settings.StatusLocation[1] + 1, Settings.HudFont, Settings.HudSize, "black", 1); //new status message
 		RenderText(StatusMessage, Settings.StatusLocation[0], Settings.StatusLocation[1], Settings.HudFont, Settings.HudSize, "orange", 1); //new status message
@@ -657,34 +711,29 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		GameLoop(); //trigger gameloop again
 	};
 	
-	var GameRunning = null;
-	var GameLoop = function() { //the gameloop function
-		GameRunning = setTimeout(function() {
-			window.requestAnimFrame(Update, Canvas);  //call animation frame
-		}, 1);
-	};
-
-	/** drawing routines **/
 	var RenderButton = function(btn) {
-		var tbtn = {};
-		$.extend(true, tbtn, btn);
-		if (tbtn.Clicked == true) {
-			tbtn.x += 3;
-			tbtn.y += 2;
-			tbtn.w -= 4;
-			tbtn.h -= 3;
+		
+		var x = btn.x;
+		var y = btn.y;
+		var w = btn.w;
+		var h = btn.h;
+	
+		if (btn.Clicked == true) {
+			x += 3;
+			y += 2;
+			w -= 4;
+			h -= 3;
 		}
-    if (tbtn.image) {
-      RenderImage(Images[tbtn.image].Image, tbtn.x, tbtn.y, tbtn.w, tbtn.h, tbtn.opacity);
-    } else if(tbtn.color) {
-      RenderRect(tbtn.x, tbtn.y, tbtn.w, tbtn.h, tbtn.color, tbtn.opacity, true);
+		if(btn.Color) {
+      RenderRect(x, y, w, h, btn.Color, btn.Opacity, true);
     }
-    if (tbtn.text) {
-      var xAlign = "center";
-      var yAlign = "center";
-      if (tbtn.xAlign) { xAlign = tbtn.xAlign; }
-      if (tbtn.yAlign) { yAlign = tbtn.yAlign; }
-      RenderText(tbtn.text, tbtn.x, tbtn.y, tbtn.text_font, tbtn.text_size, tbtn.text_color, tbtn.text_opacity, tbtn.w, tbtn.h, xAlign, yAlign);
+    if (btn.Image) {
+      RenderImage(Images[btn.Image].Image, x, y, w, h, btn.Opacity);
+    }
+    if (btn.Text) {
+      var xAl = (btn.xAlign ? btn.xAlign : "center");
+      var yAl = (btn.yAlign ? btn.yAlign : "center");
+      RenderText(btn.Text, x, y, btn.TextFont, btn.TextSize, btn.TextColor, btn.TextOpacity, w, h, xAl, yAl);
     }
 	};
 	
@@ -697,13 +746,15 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	};
 	
 	var RenderRect = function(x,y,w,h,col,opac, filled) { 
-		if (col) { //check for color
-			if (filled === true) {
-				Canvas.Context.fillStyle = col; //set color
-			} else {
-				Canvas.Context.strokeStyle = col;
-			}
+		if (!col) {
+			col = "black";
 		}
+		if (filled === true) {
+			Canvas.Context.fillStyle = col; //set color
+		} else {
+			Canvas.Context.strokeStyle = col;
+		}
+
 		if (opac >= 0) { //if opacity exists
 			Canvas.Context.globalAlpha = opac; //set opacity
 		}
@@ -716,11 +767,19 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	};
 	
 	var RenderText = function(text,x,y,font,size,col,opac,w,h,centerX,centerY) {
-		if (col) { //if there is a color
-			Canvas.Context.fillStyle = col; //set color
+		if (!col) {
+			col = "black";
 		}
+		Canvas.Context.fillStyle = col; //set color
+		
 		if (opac > 0) { //if opacity exists
 			Canvas.Context.globalAlpha = opac; //set opacity
+		}
+		if (!size) {
+			size = 12;
+		}
+		if (!font) {
+			font = "Arial";
 		}
 		Canvas.Context.font = size + "px " + font; //set font style
 		var textW;
@@ -757,7 +816,7 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 		GetCurrency: GetCurrency,
 		AlterCurrency: AlterCurrency,
 		CreateButton: CreateButton,
-		UpdateButton: UpdateButton,
+		AlterButton: AlterButton,
 		CreateAchievement: CreateAchievement,
 		CreateUpgrade: CreateUpgrade,
 		CreateParticle: CreateParticle,
@@ -775,18 +834,17 @@ function newEngine(canvasW,canvasH) { //the main Engine constructor
 	
 }
 
-/** This is a request animation frame function that gets the best possible animation process for your browser, 
-I won't go into specifics; just know it's worth using ;) **/
+// requestAnim shim layer by Paul Irish
 window.requestAnimFrame = (function(){
-	return window.requestAnimationFrame ||
-		window.webkitRequestAnimationFrame ||
-		window.mozRequestAnimationFrame ||
-		window.oRequestAnimationFrame ||
-		window.msRequestAnimationFrame ||
-	function (callback, element){
-		var fpsLoop = window.setTimeout(callback, 1000 / 60);
-	};
-}());
+  return  window.requestAnimationFrame       || 
+          window.webkitRequestAnimationFrame || 
+          window.mozRequestAnimationFrame    || 
+          window.oRequestAnimationFrame      || 
+          window.msRequestAnimationFrame     || 
+          function(/* function */ callback, /* DOMElement */ element){
+            window.setTimeout(callback, 1000 / 60);
+          };
+})();
 
 Number.prototype.roundTo = function(num) { //new rounding function
 	var resto = this%num;
